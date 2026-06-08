@@ -61,14 +61,14 @@ export const api = {
     return data;
   },
 
-  register: async (username, password, email) => {
+  register: async (username, password, email, confirmPassword) => {
     const response = await fetch(`${API_BASE}/api/auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ username, password, email }),
-    });
+      body: JSON.stringify({ username, password, email, confirm_password }),
+  });
 
     const data = await response.json();
 

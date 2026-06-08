@@ -78,7 +78,7 @@ function Register() {
       };
 
       // Llamar a la función register del api (usa API_BASE)
-      await api.register(userData.username, userData.password, userData.email);
+      await api.register(userData.username, userData.password, userData.email, formData.confirmPassword);
 
       setSuccess(true);
       setFormData({
