@@ -20,7 +20,6 @@ function Register() {
   const validateForm = () => {
     const newErrors = {};
 
-    // Validar username
     if (!formData.username.trim()) {
       newErrors.username = 'El nombre de usuario es requerido';
     } else if (formData.username.length < 3) {
@@ -29,12 +28,10 @@ function Register() {
       newErrors.username = 'Solo letras y números';
     }
 
-    // Validar email (opcional pero si se provee debe ser válido)
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Email inválido';
     }
 
-    // Validar password
     if (!formData.password) {
       newErrors.password = 'La contraseña es requerida';
     } else if (formData.password.length < 6) {
@@ -56,7 +53,6 @@ function Register() {
       [name]: value
     }));
     
-    // Limpiar error del campo cuando el usuario empieza a escribir
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -78,37 +74,12 @@ function Register() {
       const userData = {
         username: formData.username,
         password: formData.password,
-        confirm_password: formData.confirmPassword,
-        email: formData.email || `${formData.username}@sigma.com` // Email por defecto
+        email: formData.email || `${formData.username}@sigma.com`
       };
 
-      // Llamar al endpoint de registro
-      const response = await fetch('http://localhost:8000/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
-      });
+      // Llamar a la función register del api (usa API_BASE)
+      await api.register(userData.username, userData.password, userData.email);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        // Si data.detail es un objeto, conviértelo a string
-        let errorMessage = 'Error en el registro';
-        if (data.detail) {
-          if (typeof data.detail === 'object') {
-           errorMessage = JSON.stringify(data.detail);
-          } else {
-            errorMessage = data.detail;
-          }
-        } else if (data.message) {
-          errorMessage = data.message;
-        }
-        throw new Error(errorMessage);
-      }
-
-      // Éxito
       setSuccess(true);
       setFormData({
         username: '',
@@ -117,7 +88,6 @@ function Register() {
         confirmPassword: ''
       });
 
-      // Auto-redirigir después de 3 segundos
       setTimeout(() => {
         navigate('/login');
       }, 3000);

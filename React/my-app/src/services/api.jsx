@@ -61,6 +61,26 @@ export const api = {
     return data;
   },
 
+  register: async (username, password, email) => {
+    const response = await fetch(`${API_BASE}/api/auth/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ username, password, email }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      const error = new Error(data.detail || 'Error en el registro');
+      error.response = { data };
+      throw error;
+    }
+
+    return data;
+  },
+
   getCurrentUser: async () => fetchWithAuth(`${API_BASE}/api/auth/me`),
 
   updateCurrentUser: async (userData) =>
@@ -94,7 +114,6 @@ export const api = {
       body: JSON.stringify(measurementData),
     }),
 
-  // Nueva función para medición manual
   postManualMeasurement: async () =>
     fetchWithAuth(`${API_BASE}/api/mediciones/manual`, { method: 'POST' }),
 
