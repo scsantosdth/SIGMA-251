@@ -1,0 +1,47 @@
+my-app/
+├── src/
+│   ├── components/
+│   │   ├── Dashboard/
+│   │   │   ├── Dashboard.jsx
+│   │   │   ├── MetricCard.jsx
+│   │   │   ├── StorageLevel.jsx
+│   │   │   └── RealTimeChart.jsx
+│   │   ├── Auth/
+│   │   │   ├── Login.jsx
+│   │   │   └── Register.jsx
+│   │   ├── Layout/
+│   │   │   ├── MainLayout.jsx
+│   │   │   └── Header.jsx
+│   │   └── Settings/
+│   │       ├── Settings.jsx
+│   │       ├── ChangePasswordModal.jsx
+│   │       └── ChangeEmailModal.jsx
+│   ├── hooks/
+│   │   ├── useSensorData.jsx
+│   │   ├── useWebSocket.jsx
+│   │   ├── useBatteryStatus.jsx
+│   │  
+│   ├── services/
+│   │   └── api.jsx
+│   ├── styles/
+│   │   ├── globals.css
+│   │   ├── Admin.css
+│   │   ├── index.css
+│   │   ├── Layout.css
+│   │   ├── Auth.css
+│   │   ├── Dashboard.css
+│   │   └── Settings.css
+│   └── App.jsx
+└── package.json
+
+
+
+    Filtros en gráfica - Selector de rango de tiempo (1h, 6h, 24h)
+
+    Animaciones/mejoras visuales - Efectos hover, transiciones suaves
+
+    Manejo de errores mejorado - Estados específicos por componente
+
+    Optimizaciones - Loading skeletons, lazy loadingspecíficos
+
+

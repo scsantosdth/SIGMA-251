@@ -1,0 +1,34 @@
+sigma_api/
+├── app/
+│   ├── __init__.py
+│   ├── main.py
+│   ├── dependencies.py
+│   ├── database.py
+│   ├── utils/
+│   │   ├── auth_utils.py
+│   ├── models/
+│   │   ├── user_models.py
+│   │   ├── __init__.py
+│   │   └── database_models.py
+│   ├── routers/
+│   │   ├── __init__.py
+│   │   ├── mediciones.py
+│   │   ├── estado_sistema.py
+│   │   ├── auth.py
+│   ├── config.py
+│   └── receiver.py
+├── requirements.txt
+└── README.md
+
+
+    Capa de Rutas (Routers): Manejan HTTP requests/responses
+
+    Capa de Servicios: Contienen la lógica de negocio
+
+    Capa de Modelos:
+
+        SQLAlchemy (BD)
+
+        Pydantic (validación serialización)
+
+    Capa de Base de Datos: Conexión y configuración

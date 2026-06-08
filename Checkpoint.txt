@@ -1,0 +1,239 @@
+# **CHECKPOINT - Proyecto AgroIoT UIS**
+
+## **📋 CONTEXTO GENERAL DEL PROYECTO**
+
+**Título:** Desarrollo de prototipo para medición de variables ambientales de sistemas agroindustriales con visualización en dispositivos remotos.
+
+**Autores:** Brayan Julian Niño Hurtado & Sergio Camilo Santos Uribe
+
+**Institución:** Universidad Industrial de Santander (UIS), Escuela de Ingenierías Eléctrica, Electrónica y de Telecomunicaciones
+
+**Año:** 2025
+
+---
+
+## **🎯 OBJETIVOS CLAVE**
+
+### **Objetivo General:**
+Desarrollar un prototipo de sistema IoT para medición de variables ambientales en sistemas agroindustriales, con almacenamiento local y sincronización dinámica en base de datos en la nube.
+
+### **Objetivos Específicos:**
+1. ✅ Diseñar arquitectura IoT con selección de sensores adecuados
+2. ⚠️ Desarrollar firmware/software de adquisición de datos
+3. 🔴 Implementar mecanismo de almacenamiento híbrido (local + nube)
+4. ⚠️ Diseñar interfaz de visualización remota
+5. 🔴 Evaluar desempeño en condiciones reales
+
+### **Variables a medir:**
+- Temperatura ambiental (°C)
+- Humedad del suelo (%) 
+- Radiación solar (W/m²)
+- Nivel de almacenamiento local (% capacidad)
+
+---
+
+## **🛠️ ESTADO ACTUAL DE IMPLEMENTACIÓN**
+
+### **✅ COMPLETADO:**
+1. **Hardware/Comunicación:**
+   - Waspmote Pro Agriculture v1.2 con sensores configurados
+   - Transmisión XBee inalámbrica (Waspmote → PC)
+   - Script Python en PC que lee puerto serial `COM8`
+   - Conversión correcta de datos (Hz a % para Watermark)
+
+2. **Backend (FastAPI):**
+   - API funcional en `localhost:8000`
+   - Endpoints para mediciones y estado del sistema
+   - Conexión a PostgreSQL
+   - Estructura organizada (routers, models, database)
+
+3. **Frontend (React):**
+   - Dashboard básico funcionando
+   - Componentes: MetricCard, RealTimeChart, StorageLevel
+   - Hooks: useSensorData, useWebSocket, useBatteryStatus
+   - Polling cada 10 segundos a la API
+   - Servicios API configurados
+
+### **⚠️ EN PROCESO/PENDIENTE:**
+1. **Almacenamiento Híbrido (CRÍTICO):**
+   - ❌ Mecanismo de almacenamiento local cuando no hay internet
+   - ❌ Lógica de sincronización automática al recuperar conexión
+   - ❌ Sistema de alertas al 80% de capacidad local
+
+2. **Frontend:**
+   - ⚠️ Funcional pero necesita mejoras responsivas
+   - ⚠️ Falta integración con sistema offline
+   - ⚠️ Alertas visuales no implementadas
+
+3. **Despliegue/Acceso:**
+   - 🔴 Sistema solo funciona en `localhost`
+   - 🔴 No accesible desde dispositivos remotos
+   - 🔴 No configurado para producción
+
+---
+
+## **🔗 ARQUITECTURA ACTUAL**
+
+```
+Waspmote (sensores) 
+    ↓ (XBee wireless)
+Puerto Serial COM8 (PC)
+    ↓
+Script Python (serial_reader.py)
+    ↓ (HTTP POST)
+FastAPI (localhost:8000)
+    ↓ (SQLAlchemy)
+PostgreSQL Database
+    ↓ (REST API)
+React Frontend (localhost:3000)
+    ↓ (Fetch API)
+Usuario en navegador
+```
+
+### **Endpoints principales:**
+- `POST /api/mediciones/waspmote` - Recibir datos de sensores
+- `POST /api/estado-sistema/waspmote` - Estado de batería
+- `GET /api/mediciones/waspmote/latest` - Última medición
+- `GET /api/mediciones/waspmote/historical` - Datos históricos
+
+---
+
+## **🎮 PUNTOS DE CONFUSIÓN ACLARADOS**
+
+### **1. "Almacenamiento local en dispositivo móvil":**
+- **Plan original:** Sugiere app móvil que almacena datos offline
+- **Implementación actual:** Script Python guarda en `sensor_backup.txt` en PC
+- **Decisión tomada:** Implementaremos almacenamiento offline en el NAVEGADOR web (IndexedDB) para cumplir el espíritu del proyecto
+
+### **2. "Visualización en dispositivos remotos":**
+- **Estado actual:** Solo funciona en `localhost` de la PC
+- **Requerimiento:** Sistema debe ser accesible vía internet
+- **Solución pendiente:** Despliegue en servidor cloud o configuración para LAN
+
+### **3. Responsive vs App nativa:**
+- **Confirmado:** Se desarrolla aplicación WEB (React), no app nativa
+- **Responsive:** La web debe verse bien en PC y móviles
+- **Offline:** Navegador almacenará datos cuando no haya conexión
+
+---
+
+## **📂 ESTRUCTURA DE ARCHIVOS**
+
+### **Backend (FastAPI):**
+```
+sigma_api/
+├── app/
+│   ├── main.py              # App principal
+│   ├── database.py          # Conexión DB
+│   ├── models/database_models.py  # Modelos SQLAlchemy
+│   ├── routers/             # Endpoints
+│   │   ├── mediciones.py    # Rutas de mediciones
+│   │   └── estado_sistema.py # Rutas de estado
+│   └── config.py            # Configuraciones
+```
+
+### **Frontend (React):**
+```
+src/
+├── components/Dashboard/
+│   ├── Dashboard.jsx        # Dashboard principal
+│   ├── MetricCard.jsx       # Tarjetas de métricas
+│   ├── RealTimeChart.jsx    # Gráficos en tiempo real
+│   └── StorageLevel.jsx     # Nivel de almacenamiento (pendiente)
+├── hooks/
+│   ├── useSensorData.jsx    # Hook para datos de sensores
+│   ├── useWebSocket.jsx     # Hook para WebSocket
+│   └── useBatteryStatus.jsx # Hook para estado de batería
+├── services/
+│   └── api.jsx              # Servicios API
+└── styles/                  # Estilos CSS
+```
+
+### **Script Python (lector serial):**
+- `serial_reader.py` - Lee puerto COM8, convierte datos, envía a FastAPI
+- Ya incluye guardado básico en `sensor_backup.txt` cuando falla conexión
+
+---
+
+## **🎯 PRÓXIMOS PASOS PRIORIZADOS**
+
+### **🚨 ALTA PRIORIDAD (Crítico para objetivos):**
+1. **Implementar almacenamiento offline en navegador**
+   - Usar IndexedDB/localForage
+   - Guardar datos cuando fetch falle
+   - Lógica de sincronización automática
+
+2. **Sistema de alertas de almacenamiento**
+   - Monitorear uso de IndexedDB
+   - Alerta visual al 80% de capacidad
+   - Notificaciones al usuario
+
+3. **Mejorar responsividad del frontend**
+   - Asegurar funcionamiento en móviles
+   - Diseño adaptativo
+
+### **⚠️ MEDIA PRIORIDAD:**
+4. **Preparar despliegue para acceso remoto**
+   - Configurar FastAPI para producción
+   - Build de React para producción
+   - Opciones: servidor cloud, LAN configurada
+
+5. **Pruebas de criterios de evaluación**
+   - Precisión de sensores (<5% error)
+   - Disponibilidad de datos (>95%)
+   - Sincronización (<2 minutos)
+
+### **📋 BAJA PRIORIDAD:**
+6. **Documentación y manuales**
+7. **Mejoras estéticas UI/UX**
+8. **Funcionalidades adicionales**
+
+---
+
+## **❓ PREGUNTAS PENDIENTES CON TUTOR**
+
+1. **Clarificación de requisitos:**
+   - ¿"Dispositivo móvil" = web responsive o app nativa?
+   - ¿Nivel de despliegue requerido? (LAN vs Internet público)
+
+2. **Validación de enfoque técnico:**
+   - ¿Aceptable implementar offline en navegador en vez de app móvil?
+   - ¿Criterios específicos de validación en campo?
+
+---
+
+## **🔧 HERRAMIENTAS/TECNOLOGÍAS**
+
+- **Frontend:** React, CSS, Chart.js/Recharts (¿?)
+- **Backend:** FastAPI, Python, SQLAlchemy
+- **Base de datos:** PostgreSQL
+- **Comunicación:** XBee (ZigBee), HTTP/REST
+- **Hardware:** Waspmote Pro Agriculture v1.2, sensores de temperatura/humedad/luz
+- **Desarrollo:** Visual Studio Code, Git, npm, pip
+
+---
+
+## **📊 CRITERIOS DE ÉXITO (DEL PLAN)**
+
+1. **Precisión:** Error máximo 5% en sensores
+2. **Disponibilidad:** ≥95% de lecturas registradas
+3. **Sincronización:** <2 minutos para transferencia tras recuperar conexión  
+4. **Gestión memoria:** Alerta al 80% de capacidad local
+5. **Escalabilidad:** Funcionar en diferentes entornos agroindustriales
+
+---
+
+**✅ CHECKPOINT GUARDADO - LISTO PARA CONTINUAR**
+
+---
+
+**Nota para futuras sesiones:**
+Este checkpoint resume el estado hasta [Fecha]. Para continuar con:
+1. **Almacenamiento local offline:** Revisar sección "ALTA PRIORIDAD"
+2. **Web responsive:** Revisar "Mejorar responsividad del frontend"
+3. **Despliegue remoto:** Revisar "Preparar despliegue para acceso remoto"
+
+**Archivos clave a revisar:**
+- `src/hooks/useSensorData.jsx` - Punto de integración para offline
+- `src/services/api.jsx` - Donde interceptar fallos de conexión
+- `serial_reader.py` - Ya tiene lógica básica de backup local en PC

@@ -1,0 +1,18 @@
+# 1. Crear entorno virtual con Python 3.12
+py -3.12 -m venv venv
+
+# 2. Activar entorno (Windows)
+venv\Scripts\activate
+
+# Deberías ver (venv) al principio de la línea
+# Ejemplo: (venv) PS C:\...\sigma_api>
+
+# 3. Verificar Python correcto
+python --version  # Debe decir Python 3.12.x
+
+# 4. Instalar dependencias del proyecto
+pip install -r requirements.txt
+pip install "python-jose[cryptography]" passlib[bcrypt]
+
+# 5. Verificar
+pip list | findstr "fastapi jose passlib"

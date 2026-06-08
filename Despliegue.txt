@@ -1,0 +1,13 @@
+fasAPI : 
+	env\Scripts\activate
+	uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+
+React : npm install
+	npm run build
+
+
+
+SIGMA_API: .\deploy_lan.ps1
+
+

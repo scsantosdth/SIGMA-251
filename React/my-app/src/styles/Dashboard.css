@@ -1,0 +1,485 @@
+
+/* ===== DASHBOARD LAYOUT ===== */
+.dashboard-container {
+  display: flex;
+  gap: 2rem;
+  min-height: calc(100vh - 200px);
+}
+
+.dashboard-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.dashboard-sidebar {
+  width: 320px;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #374151;
+}
+
+.dashboard-header h2 {
+  margin: 0;
+  color: #5fc2c9; 
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.time-range-selector {
+  display: flex;
+  gap: 0.5rem;
+  background: #1f2937;
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid #374151;
+}
+
+.time-range-selector button {
+  padding: 0.5rem 1.2rem;
+  border: none;
+  background: #111827;
+  border-radius: 6px;
+  font-weight: 600;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+}
+
+.time-range-selector button:hover {
+  background: #374151;
+  color: #e0e0e0;
+}
+
+.time-range-selector button.active {
+  background: #374151; /* Verde esmeralda */
+  color: white;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+}
+
+/* ===== METRIC CARD ===== */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+}
+
+.metric-card {
+  background: #1f2937; /* Gris medio */
+  border-radius: 1px solid #667eea;
+  padding: 20px 15px;
+  border: 1px solid #374151;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  height: 200px;
+  justify-content: space-between;
+  transition: all 0.3s ease;
+}
+
+.metric-card:hover {
+  transform: translateY(-3px);
+  border-color: rgb(80, 175, 167);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.metric-title {
+  color: #e0e0e0; /* Verde esmeralda */
+  margin: 0;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.gauge-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 120px;
+}
+
+.gauge {
+  position: absolute;
+  top: 0;
+}
+
+.gauge-background {
+  opacity: 0.3;
+}
+
+.gauge-progress {
+  transition: stroke-dashoffset 0.8s ease-in-out;
+}
+
+.gauge-value {
+  position: relative;
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #f9fafb; /* Blanco muy claro */
+  text-align: center;
+  margin-top: 25px;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+}
+
+.gauge-unit {
+  font-size: 1rem;
+  color: #9ca3af; /* Gris medio */
+  margin-left: 2px;
+  font-weight: normal;
+}
+
+/* ===== CHARTS ===== */
+.chart-section {
+  background: #1f2937; /* Gris medio */
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid #374151;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.chart-header h3 {
+  margin: 0;
+  color: #e0e0e0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.chart-legend {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #d1d5db; /* Gris claro */
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.legend-color.temp {
+  background: #10b981; /* Verde esmeralda */
+  box-shadow: 0 0 5px #10b981;
+}
+
+.legend-color.humidity {
+  background: #5fc2c9; /* Verde */
+  box-shadow: 0 0 5px #5fc2c9;
+}
+
+/* ===== LOADING & ERROR STATES ===== */
+.loading-container,
+.error-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+.loading {
+  font-size: 1.2rem;
+  color: #9ca3af;
+  text-align: center;
+}
+
+.error {
+  color: #ef4444; /* Rojo suave */
+  font-size: 1.1rem;
+  text-align: center;
+  padding: 2rem;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* ===== BATTERY/STORAGE COMPONENTS ===== */
+.battery-card {
+  background: #1f2937; /* Gris medio */
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid rgb(53, 109, 104);
+  margin-bottom: 1.5rem;
+}
+
+.battery-card h3 {
+  color: #e0e0e0; 
+  margin-bottom: 15px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.battery-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.battery-level {
+  width: 100%;
+  height: 25px;
+  background-color: #111827; /* Fondo oscuro */
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #374151;
+}
+
+.battery-fill {
+  height: 100%;
+  border-radius: 12px;
+  transition: width 0.5s ease;
+  background: linear-gradient(90deg, #10b981, #3b82f6); /* Verde a azul */
+}
+
+.battery-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.battery-value {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #f9fafb;
+}
+
+.battery-status {
+  background: #111827;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  color: #9ca3af;
+  border: 1px solid #374151;
+}
+
+/* ===== STATUS CARD (en StatusSidebar) ===== */
+.status-card {
+  background:  #1f2937;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid rgb(53, 109, 104);
+}
+
+.status-card h3 {
+  color: #e0e0e0 ;
+  margin-bottom: 15px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.8rem;
+  background: #111827;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.status-item:hover {
+  background: #1f2937;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #10b981; /* Verde esmeralda */
+  box-shadow: 0 0 5px rgba(16, 185, 129, 0.5);
+}
+
+.status-item:nth-child(2) .status-dot {
+  background: #5fc2c9; /* Verde */
+}
+
+.status-item:nth-child(3) .status-dot {
+  background: #8b5cf6; /* Violeta */
+}
+
+.status-item:nth-child(4) .status-dot {
+  background: #f59e0b; /* Ãmbar */
+}
+
+.status-item span {
+  color: #d1d5db;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1024px) {
+  .dashboard-container {
+    flex-direction: column;
+  }
+  
+  .dashboard-sidebar {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .time-range-selector {
+    align-self: stretch;
+    justify-content: center;
+  }
+  
+  .chart-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .chart-legend {
+    flex-wrap: wrap;
+  }
+  
+  .metrics-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+  
+  .metric-card {
+    height: 180px;
+    padding: 15px 10px;
+  }
+  
+  .gauge-container {
+    height: 100px;
+  }
+  
+  .gauge-value {
+    font-size: 1.6rem;
+    margin-top: 20px;
+  }
+}
+
+/* ===== THEME LIGHT (Dashboard) ===== */
+.theme-light .dashboard-header h2 {
+  color: #10b981;
+}
+
+.theme-light .time-range-selector {
+  background: #e5e7eb;
+  border-color: #d1d5db;
+}
+
+.theme-light .time-range-selector button {
+  background: #f8fafc;
+  color: #475569;
+}
+
+.theme-light .metric-card {
+  background: #ffffff;
+  border-color: #e5e7eb;
+}
+
+.theme-light .metric-title {
+  color: #111827;
+}
+
+.theme-light .gauge-value {
+  color: #111827;
+}
+
+.theme-light .chart-section {
+  background: #ffffff;
+  border-color: #e5e7eb;
+}
+
+.theme-light .chart-header h3 {
+  color: #111827;
+}
+
+.theme-light .legend-item {
+  color: #334155;
+}
+
+.theme-light .status-sidebar {
+  background: #ffffff;
+  border-color: #e5e7eb;
+}
+
+.theme-light .battery-card,
+.theme-light .status-card {
+  background: #ffffff;
+  border-color: #e5e7eb;
+}
+
+.theme-light .battery-card h3,
+.theme-light .status-card h3 {
+  color: #111827;
+}
+
+.theme-light .battery-level {
+  background-color: #f1f5f9;
+  border-color: #e5e7eb;
+}
+
+.theme-light .battery-value {
+  color: #111827;
+}
+
+.theme-light .battery-status {
+  background: #f1f5f9;
+  color: #475569;
+  border-color: #e5e7eb;
+}
+
+.theme-light .status-item {
+  background: #f8fafc;
+}
+
+.theme-light .status-item span {
+  color: #334155;
+}
+
+
+/* Dark mode gradient titles */
+.dashboard-header h2 {
+  background: linear-gradient(135deg, #5fc2c9 0%, #667eea 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.theme-light .dashboard-header h2 {
+  background: none;
+  -webkit-text-fill-color: initial;
+}

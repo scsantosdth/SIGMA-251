@@ -1,0 +1,20 @@
+[
+  {
+    "temperatura": 28.14,
+    "humedad": 72.66,
+    "luminosidad": 44.19,
+    "humedad_suelo": 98.9,
+    "bateria": 13.0,
+    "timestamp": "2026-02-22T21:02:27.564699",
+    "id": 1771812147564
+  },
+  {
+    "temperatura": 26.94,
+    "humedad": 72.42,
+    "luminosidad": 34.52,
+    "humedad_suelo": 98.5,
+    "bateria": 14.0,
+    "timestamp": "2026-02-22T21:03:12.122771",
+    "id": 1771812192122
+  }
+]

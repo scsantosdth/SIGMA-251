@@ -1,0 +1,104 @@
+-- Tabla: usuarios
+CREATE TABLE IF NOT EXISTS usuarios (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    rol VARCHAR(20) DEFAULT 'operador',
+    activo BOOLEAN DEFAULT TRUE,
+    fecha_creacion TIMESTAMP DEFAULT NOW(),
+    ultimo_login TIMESTAMP
+);
+
+-- Tabla: dispositivos
+CREATE TABLE IF NOT EXISTS dispositivos (
+    id SERIAL PRIMARY KEY,
+    usuario_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+    nombre VARCHAR(100) NOT NULL,
+    tipo VARCHAR(50) NOT NULL,
+    descripcion TEXT,
+    ubicacion VARCHAR(200),
+    fecha_instalacion TIMESTAMP DEFAULT NOW(),
+    activo BOOLEAN DEFAULT TRUE
+);
+
+-- Tabla: sensores
+CREATE TABLE IF NOT EXISTS sensores (
+    id SERIAL PRIMARY KEY,
+    dispositivo_id INTEGER REFERENCES dispositivos(id) ON DELETE CASCADE,
+    nombre VARCHAR(100) NOT NULL,
+    tipo VARCHAR(50) NOT NULL,
+    unidad VARCHAR(20) NOT NULL,
+    rango_min FLOAT,
+    rango_max FLOAT,
+    calibracion TEXT,
+    activo BOOLEAN DEFAULT TRUE
+);
+
+-- Tabla: mediciones
+CREATE TABLE IF NOT EXISTS mediciones (
+    id SERIAL PRIMARY KEY,
+    sensor_id INTEGER REFERENCES sensores(id) ON DELETE CASCADE,
+    valor FLOAT NOT NULL,
+    calidad VARCHAR(20) DEFAULT 'buena',
+    timestamp TIMESTAMP DEFAULT NOW()
+);
+
+-- Tabla: estado_sistema
+CREATE TABLE IF NOT EXISTS estado_sistema (
+    id SERIAL PRIMARY KEY,
+    dispositivo_id INTEGER REFERENCES dispositivos(id) ON DELETE CASCADE,
+    bateria FLOAT,
+    almacenamiento FLOAT,
+    estado_conexion BOOLEAN DEFAULT TRUE,
+    uptime INTEGER,
+    timestamp TIMESTAMP DEFAULT NOW()
+);
+
+-- Tabla: eventos_sistema
+CREATE TABLE IF NOT EXISTS eventos_sistema (
+    id SERIAL PRIMARY KEY,
+    dispositivo_id INTEGER REFERENCES dispositivos(id) ON DELETE CASCADE,
+    tipo VARCHAR(20) NOT NULL,
+    severidad VARCHAR(10) NOT NULL,
+    mensaje TEXT NOT NULL,
+    resuelto BOOLEAN DEFAULT FALSE,
+    timestamp TIMESTAMP DEFAULT NOW()
+);
+
+-- Tabla: configuracion (agregada para el intervalo automático)
+CREATE TABLE IF NOT EXISTS configuracion (
+    id SERIAL PRIMARY KEY,
+    clave VARCHAR(100) UNIQUE NOT NULL,
+    valor VARCHAR(500) NOT NULL,
+    descripcion TEXT,
+    actualizado_en TIMESTAMP DEFAULT NOW()
+);
+
+-- Insertar configuración inicial (intervalo automático = 5 minutos)
+INSERT INTO configuracion (clave, valor, descripcion)
+VALUES ('auto_intervalo_minutos', '5', 'Intervalo en minutos para almacenamiento automático de mediciones')
+ON CONFLICT (clave) DO NOTHING;
+
+-- Insertar datos iniciales de sensores (asumiendo dispositivo_id = 1)
+-- Primero insertamos un dispositivo por defecto si no existe
+INSERT INTO dispositivos (nombre, tipo, ubicacion)
+SELECT 'Waspmote Pro Agriculture', 'Estación base', 'Campo experimental'
+WHERE NOT EXISTS (SELECT 1 FROM dispositivos LIMIT 1);
+
+-- Luego insertamos los sensores asociados al dispositivo recién creado (id=1)
+INSERT INTO sensores (dispositivo_id, nombre, tipo, unidad)
+SELECT 1, 'Temperatura', 'SHT75', '°C'
+WHERE NOT EXISTS (SELECT 1 FROM sensores WHERE nombre = 'Temperatura');
+
+INSERT INTO sensores (dispositivo_id, nombre, tipo, unidad)
+SELECT 1, 'Humedad', 'SHT75', '%'
+WHERE NOT EXISTS (SELECT 1 FROM sensores WHERE nombre = 'Humedad');
+
+INSERT INTO sensores (dispositivo_id, nombre, tipo, unidad)
+SELECT 1, 'Luminosidad', 'LDR', 'W/m²'
+WHERE NOT EXISTS (SELECT 1 FROM sensores WHERE nombre = 'Luminosidad');
+
+INSERT INTO sensores (dispositivo_id, nombre, tipo, unidad)
+SELECT 1, 'Humedad Suelo', 'Watermark', '%'
+WHERE NOT EXISTS (SELECT 1 FROM sensores WHERE nombre = 'Humedad Suelo');

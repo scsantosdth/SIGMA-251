@@ -1,0 +1,11 @@
+/* src/styles/index.css */
+/* Este archivo ahora solo importa otros CSS */
+@import './globals.css';
+@import './Layout.css';
+@import './Dashboard.css';
+@import './Auth.css';
+@import './Admin.css';
+@import './Settings.css';
+
+
+

@@ -1,0 +1,40 @@
+CHECKPOINT 3 COMPLETADO ✅
+RESUMEN DE LO LOGRADO:
+
+✅ BACKEND COMPLETO:
+
+    JWT Authentication con roles (admin/operador)
+
+    Endpoints CRUD usuarios funcionales
+
+    Base de datos PostgreSQL actualizada
+
+✅ FRONTEND COMPLETO:
+
+    Sistema de login/register con validaciones
+
+    Dashboard responsive con datos de sensores
+
+    Panel de administración de usuarios (Checkpoint 3 principal)
+
+    Layout intuitivo con navegación sidebars
+
+    Estética profesional con tema oscuro unificado
+
+✅ FUNCIONALIDADES IMPLEMENTADAS:
+
+    Registro público → Crea usuarios como operadores
+
+    Login seguro con JWT tokens
+
+    Gestión de usuarios (solo admin):
+
+        Ver todos los usuarios registrados
+
+        Cambiar roles (operador ↔ admin)
+
+        Activar/desactivar usuarios
+
+    Navegación protegida por roles
+
+    UI/UX intuitiva con feedback visual

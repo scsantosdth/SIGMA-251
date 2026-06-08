@@ -1,0 +1,14 @@
+2026-02-10 01:50:47.303519: {'temperatura': 26.49, 'humedad': 71.06, 'luminosidad': 40.32, 'humedad_suelo': 98.1, 'bateria': 25.0}
+2026-02-10 01:51:31.354729: {'temperatura': 26.49, 'humedad': 71.03, 'luminosidad': 33.87, 'humedad_suelo': 98.1, 'bateria': 25.0}
+2026-02-16 02:13:48.969616: {'temperatura': 26.91, 'humedad': 67.9, 'luminosidad': 33.23, 'humedad_suelo': 98.8, 'bateria': 35.0}
+2026-02-16 02:18:24.688421: {'temperatura': 26.95, 'humedad': 67.66, 'luminosidad': 40.65, 'humedad_suelo': 98.4, 'bateria': 34.0}
+2026-02-16 02:23:53.409330: {'temperatura': 26.89, 'humedad': 67.72, 'luminosidad': 36.45, 'humedad_suelo': 98.4, 'bateria': 33.0}
+2026-02-22 20:06:04.093554: {'temperatura': 26.53, 'humedad': 74.19, 'luminosidad': 42.9, 'humedad_suelo': 98.6, 'bateria': 28.0}
+2026-02-22 21:02:32.091845: {'temperatura': 28.14, 'humedad': 72.66, 'luminosidad': 44.19, 'humedad_suelo': 98.9, 'bateria': 13.0}
+2026-02-22 21:04:44.808616: {'temperatura': 26.73, 'humedad': 73.19, 'luminosidad': 40.0, 'humedad_suelo': 98.3, 'bateria': 14.0}
+2026-02-22 23:23:01.917768: {'temperatura': 26.71, 'humedad': 71.15, 'luminosidad': 41.29, 'humedad_suelo': 98.2, 'bateria': 29.0}
+2026-02-26 01:07:13.609139: {'temperatura': 27.78, 'humedad': 63.73, 'luminosidad': 4.84, 'humedad_suelo': 98.5, 'bateria': 24.0}
+2026-02-26 01:39:29.851345: {'temperatura': 28.49, 'humedad': 67.33, 'luminosidad': 2.58, 'humedad_suelo': 98.8, 'bateria': 23.0}
+2026-02-26 01:41:41.659888: {'temperatura': 28.11, 'humedad': 64.39, 'luminosidad': 4.52, 'humedad_suelo': 98.2, 'bateria': 23.0}
+2026-04-04 01:32:28.643430: {'temperatura': 27.31, 'humedad': 71.8, 'luminosidad': 35.81, 'humedad_suelo': 99.1, 'bateria': 23.0}
+2026-06-06 19:35:40.646349: {'temperatura': 27.6, 'humedad': 71.39, 'luminosidad': 0.0, 'humedad_suelo': 99.0, 'bateria': 23.0}
