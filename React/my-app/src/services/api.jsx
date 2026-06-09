@@ -1,6 +1,24 @@
 const API_BASE = import.meta.env.VITE_API_BASE || `http://${window.location.hostname}:8000`;
 console.log('API_BASE:', API_BASE);
 
+const normalizeApiError = (detail, fallback = 'Error inesperado') => {
+  if (!detail) return fallback;
+
+  if (typeof detail === 'string') return detail;
+
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => item?.msg || item?.message || item?.detail || 'Error')
+      .join(', ');
+  }
+
+  if (typeof detail === 'object') {
+    return detail.msg || detail.message || detail.detail || JSON.stringify(detail);
+  }
+
+  return fallback;
+};
+
 const fetchWithAuth = async (url, options = {}) => {
   const token = localStorage.getItem('token');
 
@@ -27,10 +45,7 @@ const fetchWithAuth = async (url, options = {}) => {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    let message = errorData.detail || `Error ${response.status}`;
-    if (Array.isArray(errorData.detail)) {
-      message = errorData.detail.map((d) => d.msg || d.message || 'Error').join(', ');
-    }
+    const message = normalizeApiError(errorData.detail, `Error ${response.status}`);
     throw new Error(message);
   }
 
@@ -53,7 +68,7 @@ export const api = {
     const data = await response.json();
 
     if (!response.ok) {
-      const error = new Error(data.detail || 'Error de conexion');
+      const error = new Error(normalizeApiError(data.detail, 'Error de conexion'));
       error.response = { data };
       throw error;
     }
@@ -67,13 +82,13 @@ export const api = {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ username, password, email, confirm_password }),
-  });
+      body: JSON.stringify({ username, password, email, confirm_password: confirmPassword }),
+    });
 
     const data = await response.json();
 
     if (!response.ok) {
-      const error = new Error(data.detail || 'Error en el registro');
+      const error = new Error(normalizeApiError(data.detail, 'Error en el registro'));
       error.response = { data };
       throw error;
     }
