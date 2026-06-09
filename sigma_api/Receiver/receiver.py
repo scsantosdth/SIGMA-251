@@ -5,6 +5,10 @@ import time
 import json
 import os
 from datetime import datetime
+from pathlib import Path
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from threading import Thread
+from urllib.parse import urlparse, parse_qs
 
 # Configuracion
 API_BASE_URL = os.getenv('API_BASE_URL', 'https://sigma-251.onrender.com').rstrip('/')
@@ -13,32 +17,61 @@ ESTADO_URL = f'{API_BASE_URL}/api/estado-sistema/waspmote'
 
 SERIAL_PORT = 'COM8'
 BAUD_RATE = 115200
+LOCAL_API_HOST = os.getenv('LOCAL_API_HOST', '127.0.0.1')
+LOCAL_API_PORT = int(os.getenv('LOCAL_API_PORT', '5050'))
 
-# Configuracion JSON para frontend
-JSON_FILE = r'C:\Users\scsan\Documents\UIS\2026-1\TG2\Codigos\SIGMA-251\React\my-app\public\datos_sensor.json'
+# Almacenamiento local del receiver
+BASE_DIR = Path(__file__).resolve().parent
+LOCAL_DATA_DIR = BASE_DIR / 'local_data'
+HISTORY_FILE = LOCAL_DATA_DIR / 'mediciones_historial.json'
+LATEST_FILE = LOCAL_DATA_DIR / 'ultima_medicion.json'
+PENDING_FILE = LOCAL_DATA_DIR / 'pendientes_sync.json'
+JSON_FILE = LOCAL_DATA_DIR / 'datos_sensor.json'
 MAX_MEDICIONES = 100
+MAX_PENDING = 1000
+
+
+def _ensure_local_storage():
+    LOCAL_DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _read_json_file(path, default):
+    try:
+        if not path.exists():
+            return default
+        contenido = path.read_text(encoding='utf-8').strip()
+        if not contenido:
+            return default
+        return json.loads(contenido)
+    except (json.JSONDecodeError, ValueError, OSError):
+        return default
+
+
+def _write_json_file(path, data):
+    _ensure_local_storage()
+    temp_path = path.with_suffix(path.suffix + '.tmp')
+    temp_path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding='utf-8')
+    temp_path.replace(path)
+
+
+def _build_local_api_payload():
+    latest = _read_json_file(LATEST_FILE, {})
+    history = _read_json_file(HISTORY_FILE, [])
+    pending = _read_json_file(PENDING_FILE, [])
+
+    return {
+        'latest': latest,
+        'history_count': len(history),
+        'pending_count': len(pending),
+        'timestamp': datetime.now().isoformat(),
+    }
 
 
 def guardar_en_json(medicion):
-    """Guarda la medicion en un archivo JSON para el frontend."""
+    """Guarda la medicion en archivos JSON locales del receiver."""
     try:
-        os.makedirs(os.path.dirname(JSON_FILE), exist_ok=True)
-
-        if not os.path.exists(JSON_FILE):
-            with open(JSON_FILE, 'w', encoding='utf-8') as f:
-                json.dump([], f)
-            mediciones = []
-        else:
-            try:
-                with open(JSON_FILE, 'r', encoding='utf-8') as f:
-                    contenido = f.read().strip()
-                    if contenido:
-                        mediciones = json.loads(contenido)
-                    else:
-                        mediciones = []
-            except (json.JSONDecodeError, ValueError):
-                print('Archivo JSON corrupto, creando nuevo')
-                mediciones = []
+        _ensure_local_storage()
+        mediciones = _read_json_file(HISTORY_FILE, [])
 
         medicion_con_timestamp = {
             **medicion,
@@ -50,14 +83,139 @@ def guardar_en_json(medicion):
         if len(mediciones) > MAX_MEDICIONES:
             mediciones = mediciones[-MAX_MEDICIONES:]
 
-        with open(JSON_FILE, 'w', encoding='utf-8') as f:
-            json.dump(mediciones, f, indent=2)
+        _write_json_file(HISTORY_FILE, mediciones)
+        _write_json_file(LATEST_FILE, medicion_con_timestamp)
+        _write_json_file(JSON_FILE, mediciones)
 
-        print(f'JSON guardado: {JSON_FILE} ({len(mediciones)} mediciones)')
+        print(f'JSON local guardado: {HISTORY_FILE} ({len(mediciones)} mediciones)')
         return True
     except Exception as e:
-        print(f'Error guardando JSON: {e}')
+        print(f'Error guardando JSON local: {e}')
         return False
+
+
+def guardar_pendiente(tipo, payload, endpoint):
+    """Guarda una lectura para reintento cuando vuelva la conexion."""
+    try:
+        pendientes = _read_json_file(PENDING_FILE, [])
+        pendiente = {
+            'id': int(datetime.now().timestamp() * 1000),
+            'tipo': tipo,
+            'endpoint': endpoint,
+            'payload': payload,
+            'attempts': 0,
+            'last_error': None,
+            'created_at': datetime.now().isoformat(),
+        }
+        pendientes.append(pendiente)
+        if len(pendientes) > MAX_PENDING:
+            pendientes = pendientes[-MAX_PENDING:]
+        _write_json_file(PENDING_FILE, pendientes)
+        print(f'Lectura pendiente guardada localmente ({tipo})')
+        return True
+    except Exception as e:
+        print(f'Error guardando pendiente: {e}')
+        return False
+
+
+def reintentar_pendientes():
+    """Intenta reenviar lecturas guardadas cuando vuelve la conexion."""
+    pendientes = _read_json_file(PENDING_FILE, [])
+    if not pendientes:
+        return
+
+    restantes = []
+    for pendiente in pendientes:
+        try:
+            response = requests.post(
+                pendiente['endpoint'],
+                json=pendiente['payload'],
+                timeout=5
+            )
+            if response.status_code in (200, 201):
+                print(f"Pendiente reenviado: {pendiente['tipo']} ({pendiente['id']})")
+                continue
+
+            pendiente['attempts'] = pendiente.get('attempts', 0) + 1
+            pendiente['last_error'] = response.text
+            restantes.append(pendiente)
+        except requests.RequestException as e:
+            pendiente['attempts'] = pendiente.get('attempts', 0) + 1
+            pendiente['last_error'] = str(e)
+            restantes.append(pendiente)
+
+    _write_json_file(PENDING_FILE, restantes)
+
+
+class LocalApiHandler(BaseHTTPRequestHandler):
+    def _set_json_headers(self, status=200):
+        self.send_response(status)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
+
+    def do_OPTIONS(self):
+        self._set_json_headers()
+
+    def do_GET(self):
+        parsed = urlparse(self.path)
+        path = parsed.path
+        query = parse_qs(parsed.query)
+
+        if path in ('/', '/health'):
+            payload = {
+                'status': 'ok',
+                'service': 'receiver-local-api',
+                'host': LOCAL_API_HOST,
+                'port': LOCAL_API_PORT,
+                **_build_local_api_payload(),
+            }
+            self._set_json_headers()
+            self.wfile.write(json.dumps(payload, ensure_ascii=False).encode('utf-8'))
+            return
+
+        if path == '/api/local/latest':
+            latest = _read_json_file(LATEST_FILE, {})
+            self._set_json_headers()
+            self.wfile.write(json.dumps(latest, ensure_ascii=False).encode('utf-8'))
+            return
+
+        if path == '/api/local/history':
+            history = _read_json_file(HISTORY_FILE, [])
+            limit = query.get('limit', [None])[0]
+            try:
+                limit = int(limit) if limit is not None else None
+            except ValueError:
+                limit = None
+
+            if limit and limit > 0:
+                history = history[-limit:]
+
+            self._set_json_headers()
+            self.wfile.write(json.dumps(history, ensure_ascii=False).encode('utf-8'))
+            return
+
+        if path == '/api/local/pending':
+            pending = _read_json_file(PENDING_FILE, [])
+            self._set_json_headers()
+            self.wfile.write(json.dumps(pending, ensure_ascii=False).encode('utf-8'))
+            return
+
+        self._set_json_headers(404)
+        self.wfile.write(json.dumps({'detail': 'Not Found'}, ensure_ascii=False).encode('utf-8'))
+
+    def log_message(self, format, *args):
+        return
+
+
+def start_local_api_server():
+    server = ThreadingHTTPServer((LOCAL_API_HOST, LOCAL_API_PORT), LocalApiHandler)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    print(f'API local activa en http://{LOCAL_API_HOST}:{LOCAL_API_PORT}')
+    return server
 
 
 def convert_watermark_to_percentage(watermark_hz):
@@ -150,17 +308,20 @@ def send_to_api(sensor_data):
         }
 
         print(f'Enviando mediciones a API: {mediciones_data}')
-        response_mediciones = requests.post(
-            MEDICIONES_URL,
-            json=mediciones_data,
-            timeout=5
-        )
-
-        if response_mediciones.status_code == 200:
-            print('Mediciones enviadas exitosamente')
-        else:
-            print(f'Error enviando mediciones: {response_mediciones.text}')
-            return False
+        try:
+            response_mediciones = requests.post(
+                MEDICIONES_URL,
+                json=mediciones_data,
+                timeout=5
+            )
+            if response_mediciones.status_code == 200:
+                print('Mediciones enviadas exitosamente')
+            else:
+                print(f'Error enviando mediciones: {response_mediciones.text}')
+                guardar_pendiente('mediciones', mediciones_data, MEDICIONES_URL)
+        except requests.RequestException as e:
+            print(f'Error de conexion enviando mediciones: {e}')
+            guardar_pendiente('mediciones', mediciones_data, MEDICIONES_URL)
 
         if sensor_data.get('bateria') is not None:
             estado_data = {
@@ -169,17 +330,22 @@ def send_to_api(sensor_data):
             }
 
             print(f'Enviando estado de bateria: {sensor_data["bateria"]}%')
-            response_estado = requests.post(
-                ESTADO_URL,
-                json=estado_data,
-                timeout=5
-            )
+            try:
+                response_estado = requests.post(
+                    ESTADO_URL,
+                    json=estado_data,
+                    timeout=5
+                )
+                if response_estado.status_code == 200:
+                    print('Estado de bateria enviado exitosamente')
+                else:
+                    print(f'Error enviando bateria: {response_estado.text}')
+                    guardar_pendiente('bateria', estado_data, ESTADO_URL)
+            except requests.RequestException as e:
+                print(f'Error de conexion enviando bateria: {e}')
+                guardar_pendiente('bateria', estado_data, ESTADO_URL)
 
-            if response_estado.status_code == 200:
-                print('Estado de bateria enviado exitosamente')
-            else:
-                print(f'Error enviando bateria: {response_estado.text}')
-
+        reintentar_pendientes()
         return True
 
     except Exception as e:
@@ -192,6 +358,9 @@ def send_to_api(sensor_data):
 
 def main():
     try:
+        _ensure_local_storage()
+        start_local_api_server()
+
         ser = serial.Serial(
             port=SERIAL_PORT,
             baudrate=BAUD_RATE,
