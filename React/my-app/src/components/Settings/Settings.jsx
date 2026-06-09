@@ -30,7 +30,7 @@ function Settings() {
   // Logout
   const handleLogout = () => {
     api.logout();
-    window.location.href = '/login';
+    window.location.href = '/';
   };
 
   const showMessage = (type, text) => {

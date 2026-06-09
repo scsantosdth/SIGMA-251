@@ -20,7 +20,7 @@ function Dashboard() {
 
   const handleLogout = () => {
     api.logout();
-    window.location.href = '/login';
+    window.location.href = '/';
   };
 
   if (loading) {

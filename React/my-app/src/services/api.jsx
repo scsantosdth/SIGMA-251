@@ -39,7 +39,7 @@ const fetchWithAuth = async (url, options = {}) => {
   if (response.status === 401) {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    window.location.href = '/login';
+    window.location.href = '/';
     throw new Error('Sesion expirada');
   }
 
