@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '../services/api.jsx';
 import {
-  saveMedicionOffline,
   getMedicionesOffline,
   syncOfflineMediciones,
   isOnline,
@@ -60,22 +59,38 @@ function useSensorData() {
     }
   }, [applyOfflineData]);
 
-  const loadLocalJSON = useCallback(async () => {
+  const loadLocalData = useCallback(async (hours = timeRange) => {
     try {
-      const response = await fetch(`/datos_sensor.json?_=${Date.now()}`);
-      if (!response.ok) throw new Error('No JSON');
+      const [latestResult, historyResult] = await Promise.allSettled([
+        api.getLocalLatestMeasurements(),
+        api.getLocalHistoricalData(hours)
+      ]);
 
-      const jsonData = await response.json();
-      const loadedFromJson = applyOfflineData(jsonData);
-      if (!loadedFromJson) {
-        await loadIndexedDBFallback();
+      if (historyResult.status === 'fulfilled') {
+        const history = unwrapApiData(historyResult.value) || [];
+        if (applyOfflineData(history)) {
+          return;
+        }
+      }
+
+      if (latestResult.status === 'fulfilled') {
+        const latest = unwrapApiData(latestResult.value) || {};
+        if (Object.keys(latest).length > 0) {
+          applyOfflineData([latest]);
+          return;
+        }
+      }
+
+      const indexedLoaded = await loadIndexedDBFallback();
+      if (!indexedLoaded) {
+        setError('No se pudieron cargar datos locales');
       }
     } catch {
       await loadIndexedDBFallback();
     } finally {
       setLoading(false);
     }
-  }, [applyOfflineData, loadIndexedDBFallback]);
+  }, [applyOfflineData, loadIndexedDBFallback, timeRange]);
 
   const loadOnlineData = useCallback(async (hours = timeRange) => {
     if (!api.isAuthenticated()) {
@@ -101,7 +116,7 @@ function useSensorData() {
 
       if (allFailed) {
         setOffline(true);
-        await loadLocalJSON();
+        await loadLocalData(hours);
       } else if (offline) {
         setOffline(false);
       }
@@ -135,7 +150,7 @@ function useSensorData() {
     } finally {
       setLoading(false);
     }
-  }, [timeRange, loadLocalJSON, offline]);
+  }, [timeRange, loadLocalData, offline]);
 
   useEffect(() => {
     const unsubscribe = onConnectivityChange((online) => {
@@ -153,11 +168,11 @@ function useSensorData() {
 
   useEffect(() => {
     if (offline) {
-      loadLocalJSON();
+      loadLocalData();
     } else {
       loadOnlineData();
     }
-  }, [offline, loadLocalJSON, loadOnlineData]);
+  }, [offline, loadLocalData, loadOnlineData]);
 
   useEffect(() => {
     if (!offline) {
@@ -171,11 +186,11 @@ function useSensorData() {
   useEffect(() => {
     if (offline) {
       const interval = setInterval(() => {
-        loadLocalJSON();
+        loadLocalData();
       }, 5000);
       return () => clearInterval(interval);
     }
-  }, [offline, loadLocalJSON]);
+  }, [offline, loadLocalData]);
 
   const changeTimeRange = (hours) => {
     setTimeRange(hours);
@@ -192,7 +207,7 @@ function useSensorData() {
     loading,
     error,
     offline,
-    refetch: offline ? loadLocalJSON : () => loadOnlineData(timeRange),
+    refetch: offline ? loadLocalData : () => loadOnlineData(timeRange),
     changeTimeRange
   };
 }

@@ -1,0 +1,18 @@
+{
+  "name": "SIGMA",
+  "short_name": "SIGMA",
+  "description": "Sistema de monitoreo ambiental SIGMA con soporte offline.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b1f1a",
+  "theme_color": "#0b1f1a",
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

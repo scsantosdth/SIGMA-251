@@ -1,4 +1,5 @@
 const API_BASE = import.meta.env.VITE_API_BASE || `http://${window.location.hostname}:8000`;
+const LOCAL_API_BASE = import.meta.env.VITE_LOCAL_API_BASE || 'http://127.0.0.1:5050';
 console.log('API_BASE:', API_BASE);
 
 const normalizeApiError = (detail, fallback = 'Error inesperado') => {
@@ -17,6 +18,24 @@ const normalizeApiError = (detail, fallback = 'Error inesperado') => {
   }
 
   return fallback;
+};
+
+const fetchJson = async (url, options = {}) => {
+  const response = await fetch(url, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+    ...options,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const message = normalizeApiError(errorData.detail, `Error ${response.status}`);
+    throw new Error(message);
+  }
+
+  return response.json();
 };
 
 const fetchWithAuth = async (url, options = {}) => {
@@ -122,6 +141,16 @@ export const api = {
 
   getHistoricalData: async (hours = 24) =>
     fetchWithAuth(`${API_BASE}/api/mediciones/waspmote/historical?horas=${hours}`),
+
+  // Local receiver API
+  getLocalHealth: async () => fetchJson(`${LOCAL_API_BASE}/health`),
+
+  getLocalLatestMeasurements: async () => fetchJson(`${LOCAL_API_BASE}/api/local/latest`),
+
+  getLocalHistoricalData: async (hours = 24) =>
+    fetchJson(`${LOCAL_API_BASE}/api/local/history?limit=${hours * 10}`),
+
+  getLocalPendingData: async () => fetchJson(`${LOCAL_API_BASE}/api/local/pending`),
 
   postWaspmoteMeasurement: async (measurementData) =>
     fetchWithAuth(`${API_BASE}/api/mediciones/waspmote`, {
