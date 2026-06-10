@@ -666,6 +666,28 @@
 
 
 /* Botón Medir ahora en el header */
+.theme-light .offline-storage-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+}
+
+.theme-light .offline-storage-card h3 {
+  color: #111827;
+}
+
+.theme-light .storage-level {
+  background: #f1f5f9;
+  border: 1px solid #e5e7eb;
+}
+
+.theme-light .battery-value {
+  color: #111827;
+}
+
+.theme-light .battery-status {
+  color: #475569;
+}
+
 .manual-measure-button {
   background: linear-gradient(135deg, #2ecc71, #27ae60);
   border: none;
@@ -719,6 +741,13 @@
   height: 8px;
   overflow: hidden;
 }
+
+.storage-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .storage-fill {
   height: 100%;
   transition: width 0.3s ease;
@@ -736,6 +765,18 @@
   text-align: center;
   animation: pulse 1s infinite;
 }
+
+.battery-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary, #ffffff);
+}
+
+.battery-status {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #cbd5e1);
+}
+
 .offline-storage-compact {
   display: inline-flex;
   align-items: center;

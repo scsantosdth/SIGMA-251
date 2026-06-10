@@ -1,113 +1,5 @@
 [
   {
-    "temperatura": 27.49,
-    "humedad": 62.99,
-    "luminosidad": 15.48,
-    "humedad_suelo": 98.5,
-    "bateria": 25.0,
-    "timestamp": "2026-02-26T00:36:18.009654",
-    "id": 1772084178009
-  },
-  {
-    "temperatura": 27.37,
-    "humedad": 63.57,
-    "luminosidad": 11.61,
-    "humedad_suelo": 98.4,
-    "bateria": 24.0,
-    "timestamp": "2026-02-26T00:37:02.459185",
-    "id": 1772084222459
-  },
-  {
-    "temperatura": 27.35,
-    "humedad": 63.82,
-    "luminosidad": 14.19,
-    "humedad_suelo": 98.4,
-    "bateria": 24.0,
-    "timestamp": "2026-02-26T00:37:46.912024",
-    "id": 1772084266912
-  },
-  {
-    "temperatura": 27.36,
-    "humedad": 63.73,
-    "luminosidad": 7.1,
-    "humedad_suelo": 98.3,
-    "bateria": 24.0,
-    "timestamp": "2026-02-26T00:38:31.190476",
-    "id": 1772084311190
-  },
-  {
-    "temperatura": 27.37,
-    "humedad": 63.6,
-    "luminosidad": 8.39,
-    "humedad_suelo": 98.3,
-    "bateria": 24.0,
-    "timestamp": "2026-02-26T00:39:15.625014",
-    "id": 1772084355625
-  },
-  {
-    "temperatura": 27.38,
-    "humedad": 63.76,
-    "luminosidad": 10.97,
-    "humedad_suelo": 98.3,
-    "bateria": 24.0,
-    "timestamp": "2026-02-26T00:39:59.846838",
-    "id": 1772084399846
-  },
-  {
-    "temperatura": 27.44,
-    "humedad": 64.0,
-    "luminosidad": 13.23,
-    "humedad_suelo": 98.3,
-    "bateria": 24.0,
-    "timestamp": "2026-02-26T00:40:44.128636",
-    "id": 1772084444128
-  },
-  {
-    "temperatura": 27.45,
-    "humedad": 63.42,
-    "luminosidad": 7.1,
-    "humedad_suelo": 98.2,
-    "bateria": 24.0,
-    "timestamp": "2026-02-26T00:41:28.457106",
-    "id": 1772084488457
-  },
-  {
-    "temperatura": 27.5,
-    "humedad": 63.57,
-    "luminosidad": 5.81,
-    "humedad_suelo": 98.2,
-    "bateria": 24.0,
-    "timestamp": "2026-02-26T00:42:12.726808",
-    "id": 1772084532726
-  },
-  {
-    "temperatura": 27.5,
-    "humedad": 63.6,
-    "luminosidad": 1.61,
-    "humedad_suelo": 98.2,
-    "bateria": 24.0,
-    "timestamp": "2026-02-26T00:42:56.975384",
-    "id": 1772084576975
-  },
-  {
-    "temperatura": 30.58,
-    "humedad": 55.39,
-    "luminosidad": 8.71,
-    "humedad_suelo": 98.2,
-    "bateria": 24.0,
-    "timestamp": "2026-02-26T00:43:41.319655",
-    "id": 1772084621319
-  },
-  {
-    "temperatura": 28.32,
-    "humedad": 61.22,
-    "luminosidad": 12.9,
-    "humedad_suelo": 98.2,
-    "bateria": 24.0,
-    "timestamp": "2026-02-26T00:44:25.584526",
-    "id": 1772084665584
-  },
-  {
     "temperatura": 27.81,
     "humedad": 62.63,
     "luminosidad": 4.19,
@@ -781,5 +673,230 @@
     "bateria": 8.0,
     "timestamp": "2026-06-06T19:59:54.906025",
     "id": 1780793994906
+  },
+  {
+    "temperatura": 24.46,
+    "humedad": 79.04,
+    "luminosidad": 0.0,
+    "humedad_suelo": 98.4,
+    "bateria": 36.0,
+    "timestamp": "2026-06-08T23:17:37.869834",
+    "id": 1780978657869
+  },
+  {
+    "temperatura": 24.43,
+    "humedad": 79.13,
+    "luminosidad": 0.0,
+    "humedad_suelo": 98.3,
+    "bateria": 36.0,
+    "timestamp": "2026-06-08T23:18:21.130380",
+    "id": 1780978701130
+  },
+  {
+    "temperatura": 24.52,
+    "humedad": 78.95,
+    "luminosidad": 0.0,
+    "humedad_suelo": 98.2,
+    "bateria": 36.0,
+    "timestamp": "2026-06-08T23:19:05.387911",
+    "id": 1780978745387
+  },
+  {
+    "temperatura": 24.57,
+    "humedad": 78.81,
+    "luminosidad": 0.0,
+    "humedad_suelo": 98.2,
+    "bateria": 35.0,
+    "timestamp": "2026-06-08T23:19:49.673979",
+    "id": 1780978789673
+  },
+  {
+    "temperatura": 24.57,
+    "humedad": 78.67,
+    "luminosidad": 0.0,
+    "humedad_suelo": 98.2,
+    "bateria": 35.0,
+    "timestamp": "2026-06-08T23:20:33.893710",
+    "id": 1780978833893
+  },
+  {
+    "temperatura": 24.56,
+    "humedad": 78.78,
+    "luminosidad": 0.0,
+    "humedad_suelo": 98.1,
+    "bateria": 35.0,
+    "timestamp": "2026-06-08T23:21:18.094478",
+    "id": 1780978878094
+  },
+  {
+    "temperatura": 24.69,
+    "humedad": 79.21,
+    "luminosidad": 0.0,
+    "humedad_suelo": 98.9,
+    "bateria": 38.0,
+    "timestamp": "2026-06-09T00:43:38.913355",
+    "id": 1780983818919
+  },
+  {
+    "temperatura": 24.53,
+    "humedad": 78.95,
+    "luminosidad": 0.0,
+    "humedad_suelo": 98.5,
+    "bateria": 37.0,
+    "timestamp": "2026-06-09T00:44:23.318780",
+    "id": 1780983863318
+  },
+  {
+    "temperatura": 24.6,
+    "humedad": 78.87,
+    "luminosidad": 0.0,
+    "humedad_suelo": 98.4,
+    "bateria": 37.0,
+    "timestamp": "2026-06-09T00:45:07.685790",
+    "id": 1780983907685
+  },
+  {
+    "temperatura": 24.6,
+    "humedad": 78.75,
+    "luminosidad": 0.0,
+    "humedad_suelo": 98.3,
+    "bateria": 37.0,
+    "timestamp": "2026-06-09T00:45:52.005959",
+    "id": 1780983952005
+  },
+  {
+    "temperatura": 24.73,
+    "humedad": 78.61,
+    "luminosidad": 0.0,
+    "humedad_suelo": 98.2,
+    "bateria": 37.0,
+    "timestamp": "2026-06-09T00:46:36.286506",
+    "id": 1780983996286
+  },
+  {
+    "temperatura": 24.72,
+    "humedad": 78.32,
+    "luminosidad": 0.0,
+    "humedad_suelo": 98.2,
+    "bateria": 37.0,
+    "timestamp": "2026-06-09T00:47:20.574335",
+    "id": 1780984040574
+  },
+  {
+    "temperatura": 24.71,
+    "humedad": 78.49,
+    "luminosidad": 0.0,
+    "humedad_suelo": 98.1,
+    "bateria": 37.0,
+    "timestamp": "2026-06-09T00:48:04.703550",
+    "id": 1780984084703
+  },
+  {
+    "temperatura": 24.66,
+    "humedad": 78.55,
+    "luminosidad": 0.0,
+    "humedad_suelo": 98.1,
+    "bateria": 37.0,
+    "timestamp": "2026-06-09T00:48:48.986846",
+    "id": 1780984128986
+  },
+  {
+    "temperatura": 24.68,
+    "humedad": 78.55,
+    "luminosidad": 0.0,
+    "humedad_suelo": 98.1,
+    "bateria": 37.0,
+    "timestamp": "2026-06-09T00:49:33.152597",
+    "id": 1780984173152
+  },
+  {
+    "temperatura": 24.84,
+    "humedad": 78.09,
+    "luminosidad": 0.0,
+    "humedad_suelo": 98.1,
+    "bateria": 36.0,
+    "timestamp": "2026-06-09T00:50:17.271905",
+    "id": 1780984217271
+  },
+  {
+    "temperatura": 24.88,
+    "humedad": 78.06,
+    "luminosidad": 0.0,
+    "humedad_suelo": 98.1,
+    "bateria": 36.0,
+    "timestamp": "2026-06-09T00:51:01.776928",
+    "id": 1780984261776
+  },
+  {
+    "temperatura": 24.82,
+    "humedad": 77.94,
+    "luminosidad": 0.0,
+    "humedad_suelo": 98.0,
+    "bateria": 36.0,
+    "timestamp": "2026-06-09T00:51:45.539431",
+    "id": 1780984305539
+  },
+  {
+    "temperatura": 24.74,
+    "humedad": 78.26,
+    "luminosidad": 0.0,
+    "humedad_suelo": 98.0,
+    "bateria": 36.0,
+    "timestamp": "2026-06-09T00:52:29.734910",
+    "id": 1780984349734
+  },
+  {
+    "temperatura": 24.74,
+    "humedad": 78.26,
+    "luminosidad": 0.0,
+    "humedad_suelo": 98.0,
+    "bateria": 36.0,
+    "timestamp": "2026-06-09T00:53:13.765851",
+    "id": 1780984393765
+  },
+  {
+    "temperatura": 24.78,
+    "humedad": 78.15,
+    "luminosidad": 0.0,
+    "humedad_suelo": 98.0,
+    "bateria": 36.0,
+    "timestamp": "2026-06-09T00:53:57.920508",
+    "id": 1780984437920
+  },
+  {
+    "temperatura": 24.78,
+    "humedad": 78.15,
+    "luminosidad": 0.0,
+    "humedad_suelo": 98.0,
+    "bateria": 36.0,
+    "timestamp": "2026-06-09T00:54:42.040926",
+    "id": 1780984482040
+  },
+  {
+    "temperatura": 24.67,
+    "humedad": 78.55,
+    "luminosidad": 0.0,
+    "humedad_suelo": 98.0,
+    "bateria": 36.0,
+    "timestamp": "2026-06-09T00:55:26.063907",
+    "id": 1780984526063
+  },
+  {
+    "temperatura": 24.7,
+    "humedad": 78.55,
+    "luminosidad": 0.0,
+    "humedad_suelo": 98.0,
+    "bateria": 36.0,
+    "timestamp": "2026-06-09T00:56:10.152934",
+    "id": 1780984570152
+  },
+  {
+    "temperatura": 24.68,
+    "humedad": 78.49,
+    "luminosidad": 0.0,
+    "humedad_suelo": 97.9,
+    "bateria": 36.0,
+    "timestamp": "2026-06-09T00:56:54.224949",
+    "id": 1780984614224
   }
 ]

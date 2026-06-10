@@ -1,5 +1,6 @@
 const API_BASE = import.meta.env.VITE_API_BASE || `http://${window.location.hostname}:8000`;
-const LOCAL_API_BASE = import.meta.env.VITE_LOCAL_API_BASE || 'http://127.0.0.1:5050';
+const DEFAULT_LOCAL_API_BASE = 'http://127.0.0.1:5050';
+const LOCAL_API_STORAGE_KEY = 'sigma_local_api_base';
 console.log('API_BASE:', API_BASE);
 
 const normalizeApiError = (detail, fallback = 'Error inesperado') => {
@@ -18,6 +19,47 @@ const normalizeApiError = (detail, fallback = 'Error inesperado') => {
   }
 
   return fallback;
+};
+
+const normalizeBaseUrl = (value) => value?.trim().replace(/\/+$/, '');
+
+const getStoredLocalApiBase = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.localStorage.getItem(LOCAL_API_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+};
+
+const getLocalApiBase = () => {
+  const envBase = normalizeBaseUrl(import.meta.env.VITE_LOCAL_API_BASE);
+  if (envBase) return envBase;
+
+  const storedBase = normalizeBaseUrl(getStoredLocalApiBase());
+  if (storedBase) return storedBase;
+
+  return DEFAULT_LOCAL_API_BASE;
+};
+
+const setLocalApiBase = (baseUrl) => {
+  if (typeof window === 'undefined') return getLocalApiBase();
+
+  const normalized = normalizeBaseUrl(baseUrl);
+  if (!normalized) {
+    window.localStorage.removeItem(LOCAL_API_STORAGE_KEY);
+    return getLocalApiBase();
+  }
+
+  window.localStorage.setItem(LOCAL_API_STORAGE_KEY, normalized);
+  return normalized;
+};
+
+const clearLocalApiBase = () => {
+  if (typeof window !== 'undefined') {
+    window.localStorage.removeItem(LOCAL_API_STORAGE_KEY);
+  }
+  return getLocalApiBase();
 };
 
 const fetchJson = async (url, options = {}) => {
@@ -73,6 +115,9 @@ const fetchWithAuth = async (url, options = {}) => {
 
 export const api = {
   getApiBase: () => API_BASE,
+  getLocalApiBase,
+  setLocalApiBase,
+  clearLocalApiBase,
 
   // Auth
   login: async (username, password) => {
@@ -143,14 +188,14 @@ export const api = {
     fetchWithAuth(`${API_BASE}/api/mediciones/waspmote/historical?horas=${hours}`),
 
   // Local receiver API
-  getLocalHealth: async () => fetchJson(`${LOCAL_API_BASE}/health`),
+  getLocalHealth: async () => fetchJson(`${getLocalApiBase()}/health`),
 
-  getLocalLatestMeasurements: async () => fetchJson(`${LOCAL_API_BASE}/api/local/latest`),
+  getLocalLatestMeasurements: async () => fetchJson(`${getLocalApiBase()}/api/local/latest`),
 
   getLocalHistoricalData: async (hours = 24) =>
-    fetchJson(`${LOCAL_API_BASE}/api/local/history?limit=${hours * 10}`),
+    fetchJson(`${getLocalApiBase()}/api/local/history?limit=${hours * 10}`),
 
-  getLocalPendingData: async () => fetchJson(`${LOCAL_API_BASE}/api/local/pending`),
+  getLocalPendingData: async () => fetchJson(`${getLocalApiBase()}/api/local/pending`),
 
   postWaspmoteMeasurement: async (measurementData) =>
     fetchWithAuth(`${API_BASE}/api/mediciones/waspmote`, {
