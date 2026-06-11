@@ -55,26 +55,6 @@ function Dashboard() {
         <div className="dashboard-main">
           <div className="dashboard-header">
             <h2>Panel de Monitoreo en Tiempo Real</h2>
-            <div className="time-range-selector">
-              <button
-                className={timeRange === 1 ? 'active' : ''}
-                onClick={() => changeTimeRange(1)}
-              >
-                1H
-              </button>
-              <button
-                className={timeRange === 24 ? 'active' : ''}
-                onClick={() => changeTimeRange(24)}
-              >
-                24H
-              </button>
-              <button
-                className={timeRange === 168 ? 'active' : ''}
-                onClick={() => changeTimeRange(168)}
-              >
-                7D
-              </button>
-            </div>
           </div>
 
           <div className="metrics-grid">

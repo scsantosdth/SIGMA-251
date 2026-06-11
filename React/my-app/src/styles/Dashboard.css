@@ -32,38 +32,6 @@
   font-weight: 600;
 }
 
-.time-range-selector {
-  display: flex;
-  gap: 0.5rem;
-  background: #1f2937;
-  padding: 0.5rem;
-  border-radius: 8px;
-  border: 1px solid #374151;
-}
-
-.time-range-selector button {
-  padding: 0.5rem 1.2rem;
-  border: none;
-  background: #111827;
-  border-radius: 6px;
-  font-weight: 600;
-  color: #9ca3af;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-size: 0.9rem;
-}
-
-.time-range-selector button:hover {
-  background: #374151;
-  color: #e0e0e0;
-}
-
-.time-range-selector button.active {
-  background: #374151; /* Verde esmeralda */
-  color: white;
-  box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
-}
-
 /* ===== METRIC CARD ===== */
 .metrics-grid {
   display: grid;
@@ -166,6 +134,38 @@
 .chart-legend {
   display: flex;
   gap: 1.5rem;
+}
+
+.time-filters {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.time-filter {
+  border: 1px solid #374151;
+  background: rgba(17, 24, 39, 0.8);
+  color: #cbd5e1;
+  border-radius: 999px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.time-filter:hover {
+  transform: translateY(-1px);
+  border-color: #5fc2c9;
+  color: #ffffff;
+}
+
+.time-filter.active {
+  background: linear-gradient(135deg, #5fc2c9 0%, #10b981 100%);
+  color: #081018;
+  border-color: transparent;
+  box-shadow: 0 6px 18px rgba(95, 194, 201, 0.22);
 }
 
 .legend-item {
@@ -354,12 +354,7 @@
     align-items: flex-start;
     gap: 1rem;
   }
-  
-  .time-range-selector {
-    align-self: stretch;
-    justify-content: center;
-  }
-  
+
   .chart-header {
     flex-direction: column;
     align-items: flex-start;
@@ -395,14 +390,10 @@
   color: #10b981;
 }
 
-.theme-light .time-range-selector {
-  background: #e5e7eb;
-  border-color: #d1d5db;
-}
-
-.theme-light .time-range-selector button {
+.theme-light .time-filter {
   background: #f8fafc;
-  color: #475569;
+  color: #334155;
+  border-color: #d1d5db;
 }
 
 .theme-light .metric-card {

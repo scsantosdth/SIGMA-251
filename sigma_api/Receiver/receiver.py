@@ -102,13 +102,13 @@ def guardar_en_json(medicion):
         _write_json_file(JSON_FILE, mediciones)
 
         print(f'JSON local guardado: {HISTORY_FILE} ({len(mediciones)} mediciones)')
-        return True
+        return medicion_con_timestamp
     except Exception as e:
         print(f'Error guardando JSON local: {e}')
-        return False
+        return None
 
 
-def guardar_pendiente(tipo, payload, endpoint):
+def guardar_pendiente(tipo, payload, endpoint, local_id=None):
     """Guarda una lectura para reintento cuando vuelva la conexion."""
     try:
         pendientes = _read_json_file(PENDING_FILE, [])
@@ -117,6 +117,7 @@ def guardar_pendiente(tipo, payload, endpoint):
             'tipo': tipo,
             'endpoint': endpoint,
             'payload': payload,
+            'local_id': local_id,
             'attempts': 0,
             'last_error': None,
             'created_at': datetime.now().isoformat(),
@@ -132,13 +133,34 @@ def guardar_pendiente(tipo, payload, endpoint):
         return False
 
 
+def _actualizar_historial_local(mediciones):
+    """Reescribe el historial local con las mediciones pendientes que siguen sin sincronizar."""
+    try:
+        if not mediciones:
+            _write_json_file(HISTORY_FILE, [])
+            _write_json_file(LATEST_FILE, {})
+            _write_json_file(JSON_FILE, [])
+            return True
+
+        _write_json_file(HISTORY_FILE, mediciones)
+        _write_json_file(LATEST_FILE, mediciones[-1])
+        _write_json_file(JSON_FILE, mediciones)
+        return True
+    except Exception as e:
+        print(f'Error actualizando almacenamiento local: {e}')
+        return False
+
+
 def reintentar_pendientes():
     """Intenta reenviar lecturas guardadas cuando vuelve la conexion."""
     pendientes = _read_json_file(PENDING_FILE, [])
     if not pendientes:
-        return
+        return {'synced': 0, 'failed': 0, 'cleared': False}
 
     restantes = []
+    synced = 0
+    failed = 0
+    synced_local_ids = set()
     for pendiente in pendientes:
         try:
             response = requests.post(
@@ -148,17 +170,44 @@ def reintentar_pendientes():
             )
             if response.status_code in (200, 201):
                 print(f"Pendiente reenviado: {pendiente['tipo']} ({pendiente['id']})")
+                synced += 1
+                if pendiente.get('local_id') is not None:
+                    synced_local_ids.add(pendiente['local_id'])
                 continue
 
             pendiente['attempts'] = pendiente.get('attempts', 0) + 1
             pendiente['last_error'] = response.text
             restantes.append(pendiente)
+            failed += 1
         except requests.RequestException as e:
             pendiente['attempts'] = pendiente.get('attempts', 0) + 1
             pendiente['last_error'] = str(e)
             restantes.append(pendiente)
+            failed += 1
 
     _write_json_file(PENDING_FILE, restantes)
+    cleared = False
+    if synced_local_ids:
+        remaining_local_ids = {
+            pendiente.get('local_id')
+            for pendiente in restantes
+            if pendiente.get('local_id') is not None
+        }
+        removable_local_ids = {
+            local_id for local_id in synced_local_ids
+            if local_id not in remaining_local_ids
+        }
+
+        if removable_local_ids:
+            historico = _read_json_file(HISTORY_FILE, [])
+            historico_restante = [
+                medicion for medicion in historico
+                if medicion.get('id') not in removable_local_ids
+            ]
+            if len(historico_restante) != len(historico):
+                cleared = _actualizar_historial_local(historico_restante)
+
+    return {'synced': synced, 'failed': failed, 'cleared': cleared}
 
 
 class LocalApiHandler(BaseHTTPRequestHandler):
@@ -313,14 +362,14 @@ def clean_sensor_data(raw_string):
 def send_to_api(sensor_data):
     """Enviar datos a la API."""
     try:
-        guardar_en_json(sensor_data)
-
         mediciones_data = {
             'temperatura': sensor_data['temperatura'],
             'humedad': sensor_data['humedad'],
             'luminosidad': sensor_data['luminosidad'],
             'humedad_suelo': sensor_data['humedad_suelo']
         }
+
+        registro_local = None
 
         print(f'Enviando mediciones a API: {mediciones_data}')
         try:
@@ -333,10 +382,14 @@ def send_to_api(sensor_data):
                 print('Mediciones enviadas exitosamente')
             else:
                 print(f'Error enviando mediciones: {response_mediciones.text}')
-                guardar_pendiente('mediciones', mediciones_data, MEDICIONES_URL)
+                if registro_local is None:
+                    registro_local = guardar_en_json(sensor_data)
+                guardar_pendiente('mediciones', mediciones_data, MEDICIONES_URL, registro_local.get('id') if registro_local else None)
         except requests.RequestException as e:
             print(f'Error de conexion enviando mediciones: {e}')
-            guardar_pendiente('mediciones', mediciones_data, MEDICIONES_URL)
+            if registro_local is None:
+                registro_local = guardar_en_json(sensor_data)
+            guardar_pendiente('mediciones', mediciones_data, MEDICIONES_URL, registro_local.get('id') if registro_local else None)
 
         if sensor_data.get('bateria') is not None:
             estado_data = {
@@ -355,10 +408,14 @@ def send_to_api(sensor_data):
                     print('Estado de bateria enviado exitosamente')
                 else:
                     print(f'Error enviando bateria: {response_estado.text}')
-                    guardar_pendiente('bateria', estado_data, ESTADO_URL)
+                    if registro_local is None:
+                        registro_local = guardar_en_json(sensor_data)
+                    guardar_pendiente('bateria', estado_data, ESTADO_URL, registro_local.get('id') if registro_local else None)
             except requests.RequestException as e:
                 print(f'Error de conexion enviando bateria: {e}')
-                guardar_pendiente('bateria', estado_data, ESTADO_URL)
+                if registro_local is None:
+                    registro_local = guardar_en_json(sensor_data)
+                guardar_pendiente('bateria', estado_data, ESTADO_URL, registro_local.get('id') if registro_local else None)
 
         reintentar_pendientes()
         return True
