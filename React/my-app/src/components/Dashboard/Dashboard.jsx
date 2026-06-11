@@ -89,19 +89,6 @@ function Dashboard() {
           </div>
 
           <div className="chart-section">
-            <div className="chart-header">
-              <h3>Historial de Mediciones</h3>
-              <div className="chart-legend">
-                <div className="legend-item">
-                  <span className="legend-color temp"></span>
-                  <span>Temperatura (C)</span>
-                </div>
-                <div className="legend-item">
-                  <span className="legend-color humidity"></span>
-                  <span>Humedad (%)</span>
-                </div>
-              </div>
-            </div>
             <RealTimeChart
               historicalData={historicalData}
               timeRange={timeRange}
