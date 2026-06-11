@@ -19,17 +19,28 @@ function useSensorData() {
 
   const sensorDataRef = useRef(sensorData);
   const batteryDataRef = useRef(batteryData);
+  const historicalDataRef = useRef(historicalData);
 
   useEffect(() => {
     sensorDataRef.current = sensorData;
     batteryDataRef.current = batteryData;
-  }, [sensorData, batteryData]);
+    historicalDataRef.current = historicalData;
+  }, [sensorData, batteryData, historicalData]);
 
   const unwrapApiData = (payload) => {
     if (!payload) return null;
     if (Object.prototype.hasOwnProperty.call(payload, 'data')) return payload.data;
     return payload;
   };
+
+  const mergeHistoricalData = useCallback((baseRecords, extraRecords) => {
+    const base = Array.isArray(baseRecords) ? baseRecords : [];
+    const extra = Array.isArray(extraRecords) ? extraRecords : [];
+
+    return [...base, ...extra]
+      .filter(Boolean)
+      .sort((a, b) => new Date(a.timestamp || 0) - new Date(b.timestamp || 0));
+  }, []);
 
   const cacheOnlineMeasurement = useCallback((measurements, battery) => {
     if (!measurements) return;
@@ -51,17 +62,19 @@ function useSensorData() {
     });
   }, []);
 
-  const applyOfflineData = useCallback((records) => {
+  const applyOfflineData = useCallback((records, baseHistory = historicalDataRef.current) => {
     if (!Array.isArray(records) || records.length === 0) return false;
 
     const latest = records[records.length - 1];
+    const mergedHistory = mergeHistoricalData(baseHistory, records);
     setSensorData({
       temperatura: { valor: latest.temperatura, timestamp: latest.timestamp, calidad: 'offline' },
       humedad: { valor: latest.humedad, timestamp: latest.timestamp, calidad: 'offline' },
       humedad_suelo: { valor: latest.humedad_suelo, timestamp: latest.timestamp, calidad: 'offline' },
       luminosidad: { valor: latest.luminosidad, timestamp: latest.timestamp, calidad: 'offline' }
     });
-    setHistoricalData(records);
+    historicalDataRef.current = mergedHistory;
+    setHistoricalData(mergedHistory);
 
     if (latest.bateria !== undefined && latest.bateria !== null) {
       setBatteryData({ bateria: latest.bateria, timestamp: latest.timestamp, offline: true });
@@ -69,12 +82,12 @@ function useSensorData() {
 
     setError(null);
     return true;
-  }, []);
+  }, [mergeHistoricalData]);
 
   const loadIndexedDBFallback = useCallback(async () => {
     try {
       const indexedData = await getMedicionesOffline();
-      return applyOfflineData(indexedData);
+      return applyOfflineData(indexedData, historicalDataRef.current);
     } catch {
       return false;
     }
@@ -89,7 +102,7 @@ function useSensorData() {
 
       if (historyResult.status === 'fulfilled') {
         const history = unwrapApiData(historyResult.value) || [];
-        if (applyOfflineData(history)) {
+        if (applyOfflineData(history, historicalDataRef.current)) {
           return;
         }
       }
@@ -97,7 +110,7 @@ function useSensorData() {
       if (latestResult.status === 'fulfilled') {
         const latest = unwrapApiData(latestResult.value) || {};
         if (Object.keys(latest).length > 0) {
-          applyOfflineData([latest]);
+          applyOfflineData([latest], historicalDataRef.current);
           return;
         }
       }
@@ -160,6 +173,7 @@ function useSensorData() {
 
       if (historicalResult.status === 'fulfilled') {
         const historical = unwrapApiData(historicalResult.value) || [];
+        historicalDataRef.current = historical;
         setHistoricalData(historical);
       }
       if (failedResults.length === 0) {
