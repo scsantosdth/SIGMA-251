@@ -1,6 +1,5 @@
-// src/hooks/useOfflineStorageStatus.js
 import { useState, useEffect } from 'react';
-import localForage from 'localforage';
+import { api } from '../services/api.jsx';
 
 const MAX_MEDICIONES = 100;
 
@@ -15,8 +14,8 @@ export function useOfflineStorageStatus() {
   useEffect(() => {
     const checkStorage = async () => {
       try {
-        const mediciones = await localForage.getItem('mediciones') || [];
-        const count = mediciones.length;
+        const health = await api.getLocalHealth();
+        const count = Number(health?.history_count ?? 0);
         const percentage = (count / MAX_MEDICIONES) * 100;
         setStatus({
           count,
@@ -26,6 +25,12 @@ export function useOfflineStorageStatus() {
         });
       } catch (error) {
         console.error('Error obteniendo almacenamiento offline:', error);
+        setStatus({
+          count: 0,
+          max: MAX_MEDICIONES,
+          percentage: 0,
+          isCritical: false
+        });
       }
     };
 

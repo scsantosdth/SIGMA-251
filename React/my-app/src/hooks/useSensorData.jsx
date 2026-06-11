@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '../services/api.jsx';
 import {
+  saveMedicionOffline,
   getMedicionesOffline,
   syncOfflineMediciones,
   isOnline,
@@ -29,6 +30,26 @@ function useSensorData() {
     if (Object.prototype.hasOwnProperty.call(payload, 'data')) return payload.data;
     return payload;
   };
+
+  const cacheOnlineMeasurement = useCallback((measurements, battery) => {
+    if (!measurements) return;
+
+    const record = {
+      temperatura:
+        measurements.temperatura?.valor ?? measurements.temperatura ?? null,
+      humedad: measurements.humedad?.valor ?? measurements.humedad ?? null,
+      luminosidad:
+        measurements.luminosidad?.valor ?? measurements.luminosidad ?? null,
+      humedad_suelo:
+        measurements.humedad_suelo?.valor ?? measurements.humedad_suelo ?? null,
+      bateria:
+        battery?.bateria ?? battery?.valor ?? battery?.level ?? null
+    };
+
+    saveMedicionOffline(record).catch((error) => {
+      console.error('Error guardando medicion offline:', error);
+    });
+  }, []);
 
   const applyOfflineData = useCallback((records) => {
     if (!Array.isArray(records) || records.length === 0) return false;
@@ -124,6 +145,12 @@ function useSensorData() {
       if (measurementsResult.status === 'fulfilled') {
         const data = unwrapApiData(measurementsResult.value) || {};
         setSensorData(data);
+
+        if (batteryResult.status === 'fulfilled') {
+          cacheOnlineMeasurement(data, unwrapApiData(batteryResult.value) || {});
+        } else {
+          cacheOnlineMeasurement(data, null);
+        }
       }
 
       if (batteryResult.status === 'fulfilled') {

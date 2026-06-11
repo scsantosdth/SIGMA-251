@@ -4,6 +4,7 @@ import re
 import time
 import json
 import os
+import socket
 from datetime import datetime
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -17,7 +18,7 @@ ESTADO_URL = f'{API_BASE_URL}/api/estado-sistema/waspmote'
 
 SERIAL_PORT = 'COM8'
 BAUD_RATE = 115200
-LOCAL_API_HOST = os.getenv('LOCAL_API_HOST', '127.0.0.1')
+LOCAL_API_HOST = os.getenv('LOCAL_API_HOST', '0.0.0.0')
 LOCAL_API_PORT = int(os.getenv('LOCAL_API_PORT', '5050'))
 
 # Almacenamiento local del receiver
@@ -52,6 +53,19 @@ def _write_json_file(path, data):
     temp_path = path.with_suffix(path.suffix + '.tmp')
     temp_path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding='utf-8')
     temp_path.replace(path)
+
+
+def _get_local_ip():
+    """Intenta obtener la IP local del PC en la red."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.connect(('8.8.8.8', 80))
+            return sock.getsockname()[0]
+    except OSError:
+        try:
+            return socket.gethostbyname(socket.gethostname())
+        except OSError:
+            return '127.0.0.1'
 
 
 def _build_local_api_payload():
@@ -214,7 +228,8 @@ def start_local_api_server():
     server = ThreadingHTTPServer((LOCAL_API_HOST, LOCAL_API_PORT), LocalApiHandler)
     thread = Thread(target=server.serve_forever, daemon=True)
     thread.start()
-    print(f'API local activa en http://{LOCAL_API_HOST}:{LOCAL_API_PORT}')
+    print(f'API local activa en http://127.0.0.1:{LOCAL_API_PORT}')
+    print(f'API local accesible en red en http://{_get_local_ip()}:{LOCAL_API_PORT}')
     return server
 
 
