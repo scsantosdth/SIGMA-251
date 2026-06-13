@@ -1,8 +1,23 @@
 // src/components/Layout/Header.jsx
+import { useEffect, useState } from 'react';
 import '../../styles/index.css';
 import OfflineStorageIndicator from '../Dashboard/OfflineStorageIndicator.jsx';
 
 function Header({ onLogout, onToggleSidebar, onManualMeasure }) {
+  const [isOnline, setIsOnline] = useState(() => typeof navigator !== 'undefined' ? navigator.onLine : true);
+
+  useEffect(() => {
+    const updateStatus = () => setIsOnline(navigator.onLine);
+
+    window.addEventListener('online', updateStatus);
+    window.addEventListener('offline', updateStatus);
+
+    return () => {
+      window.removeEventListener('online', updateStatus);
+      window.removeEventListener('offline', updateStatus);
+    };
+  }, []);
+
   return (
     <header className="header">
       <div className="header-left">
@@ -24,6 +39,11 @@ function Header({ onLogout, onToggleSidebar, onManualMeasure }) {
               <span>Sistema de Monitoreo Ambiental</span>
             </div>
           </div>
+        </div>
+
+        <div className={`system-status ${isOnline ? 'online' : 'offline'}`} aria-live="polite" title="Estado de conexión">
+          <span className={`status-indicator ${isOnline ? 'online' : 'offline'}`}></span>
+          <span>{isOnline ? 'Online' : 'Offline'}</span>
         </div>
       </div>
 
