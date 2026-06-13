@@ -4,18 +4,44 @@ import '../../styles/index.css';
 import OfflineStorageIndicator from '../Dashboard/OfflineStorageIndicator.jsx';
 
 function Header({ onLogout, onToggleSidebar, onManualMeasure }) {
-  const getConnectionStatus = () => (typeof navigator !== 'undefined' ? navigator.onLine : true);
-  const [isOnline, setIsOnline] = useState(getConnectionStatus);
+  const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
-    const updateStatus = () => setIsOnline(getConnectionStatus());
+    const checkConnection = async () => {
+      if (typeof navigator === 'undefined' || !navigator.onLine) {
+        setIsOnline(false);
+        return;
+      }
+
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 2500);
+
+      try {
+        await fetch('https://www.gstatic.com/generate_204', {
+          method: 'GET',
+          mode: 'no-cors',
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        setIsOnline(true);
+      } catch {
+        setIsOnline(false);
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
+    };
+
+    const updateStatus = () => {
+      setIsOnline(typeof navigator !== 'undefined' ? navigator.onLine : true);
+      checkConnection();
+    };
 
     updateStatus();
 
     window.addEventListener('online', updateStatus);
     window.addEventListener('offline', updateStatus);
 
-    const intervalId = window.setInterval(updateStatus, 2000);
+    const intervalId = window.setInterval(updateStatus, 3000);
 
     return () => {
       window.removeEventListener('online', updateStatus);
