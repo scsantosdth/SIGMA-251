@@ -4,17 +4,23 @@ import '../../styles/index.css';
 import OfflineStorageIndicator from '../Dashboard/OfflineStorageIndicator.jsx';
 
 function Header({ onLogout, onToggleSidebar, onManualMeasure }) {
-  const [isOnline, setIsOnline] = useState(() => typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const getConnectionStatus = () => (typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [isOnline, setIsOnline] = useState(getConnectionStatus);
 
   useEffect(() => {
-    const updateStatus = () => setIsOnline(navigator.onLine);
+    const updateStatus = () => setIsOnline(getConnectionStatus());
+
+    updateStatus();
 
     window.addEventListener('online', updateStatus);
     window.addEventListener('offline', updateStatus);
 
+    const intervalId = window.setInterval(updateStatus, 2000);
+
     return () => {
       window.removeEventListener('online', updateStatus);
       window.removeEventListener('offline', updateStatus);
+      window.clearInterval(intervalId);
     };
   }, []);
 
