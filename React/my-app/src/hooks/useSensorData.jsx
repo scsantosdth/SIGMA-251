@@ -36,7 +36,6 @@ function useSensorData() {
   const mergeHistoricalData = useCallback((baseRecords, extraRecords) => {
     const base = Array.isArray(baseRecords) ? baseRecords : [];
     const extra = Array.isArray(extraRecords) ? extraRecords : [];
-
     return [...base, ...extra]
       .filter(Boolean)
       .sort((a, b) => new Date(a.timestamp || 0) - new Date(b.timestamp || 0));
@@ -45,22 +44,24 @@ function useSensorData() {
   const cacheOnlineMeasurement = useCallback((measurements, battery) => {
     if (!measurements) return;
 
+    // Evitar guardar en IndexedDB cuando estamos offline o cuando la API base es la local (127.0.0.1:5050)
+    const apiBase = api.getApiBase();
+    if (offline || apiBase.includes('127.0.0.1:5050')) {
+      return;
+    }
+
     const record = {
-      temperatura:
-        measurements.temperatura?.valor ?? measurements.temperatura ?? null,
+      temperatura: measurements.temperatura?.valor ?? measurements.temperatura ?? null,
       humedad: measurements.humedad?.valor ?? measurements.humedad ?? null,
-      luminosidad:
-        measurements.luminosidad?.valor ?? measurements.luminosidad ?? null,
-      humedad_suelo:
-        measurements.humedad_suelo?.valor ?? measurements.humedad_suelo ?? null,
-      bateria:
-        battery?.bateria ?? battery?.valor ?? battery?.level ?? null
+      luminosidad: measurements.luminosidad?.valor ?? measurements.luminosidad ?? null,
+      humedad_suelo: measurements.humedad_suelo?.valor ?? measurements.humedad_suelo ?? null,
+      bateria: battery?.bateria ?? battery?.valor ?? battery?.level ?? null
     };
 
     saveMedicionOffline(record).catch((error) => {
       console.error('Error guardando medicion offline:', error);
     });
-  }, []);
+  }, [offline]);
 
   const applyOfflineData = useCallback((records, baseHistory = historicalDataRef.current) => {
     if (!Array.isArray(records) || records.length === 0) return false;
@@ -191,7 +192,7 @@ function useSensorData() {
     } finally {
       setLoading(false);
     }
-  }, [timeRange, loadLocalData, offline]);
+  }, [timeRange, loadLocalData, offline, cacheOnlineMeasurement]);
 
   useEffect(() => {
     const unsubscribe = onConnectivityChange((online) => {
@@ -203,7 +204,6 @@ function useSensorData() {
         loadOnlineData();
       }
     });
-
     return unsubscribe;
   }, [loadOnlineData]);
 
@@ -224,11 +224,12 @@ function useSensorData() {
     }
   }, [offline, loadOnlineData]);
 
+  // Intervalo para modo offline: se reduce la frecuencia a 30 segundos (antes 5)
   useEffect(() => {
     if (offline) {
       const interval = setInterval(() => {
         loadLocalData();
-      }, 5000);
+      }, 30000);
       return () => clearInterval(interval);
     }
   }, [offline, loadLocalData]);

@@ -216,7 +216,7 @@ class LocalApiHandler(BaseHTTPRequestHandler):
         self.send_header('Content-Type', 'application/json; charset=utf-8')
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
         self.end_headers()
 
     def do_OPTIONS(self):
@@ -227,6 +227,7 @@ class LocalApiHandler(BaseHTTPRequestHandler):
         path = parsed.path
         query = parse_qs(parsed.query)
 
+        # Ruta raíz o health
         if path in ('/', '/health'):
             payload = {
                 'status': 'ok',
@@ -239,6 +240,7 @@ class LocalApiHandler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(payload, ensure_ascii=False).encode('utf-8'))
             return
 
+        # Endpoints locales propios
         if path == '/api/local/latest':
             latest = _read_json_file(LATEST_FILE, {})
             self._set_json_headers()
@@ -252,10 +254,8 @@ class LocalApiHandler(BaseHTTPRequestHandler):
                 limit = int(limit) if limit is not None else None
             except ValueError:
                 limit = None
-
             if limit and limit > 0:
                 history = history[-limit:]
-
             self._set_json_headers()
             self.wfile.write(json.dumps(history, ensure_ascii=False).encode('utf-8'))
             return
@@ -266,8 +266,39 @@ class LocalApiHandler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(pending, ensure_ascii=False).encode('utf-8'))
             return
 
+        # ======== NUEVOS ENDPOINTS PARA EMULAR FastAPI ========
+        if path == '/api/mediciones/waspmote/latest':
+            latest = _read_json_file(LATEST_FILE, {})
+            self._set_json_headers()
+            self.wfile.write(json.dumps(latest, ensure_ascii=False).encode('utf-8'))
+            return
+
+        if path == '/api/estado-sistema/waspmote/latest':
+            latest = _read_json_file(LATEST_FILE, {})
+            bateria = latest.get('bateria') if isinstance(latest, dict) else None
+            respuesta = {'bateria': bateria, 'timestamp': latest.get('timestamp')} if bateria is not None else {}
+            self._set_json_headers()
+            self.wfile.write(json.dumps(respuesta, ensure_ascii=False).encode('utf-8'))
+            return
+
+        if path == '/api/mediciones/waspmote/historical':
+            history = _read_json_file(HISTORY_FILE, [])
+            horas = query.get('horas', [None])[0]
+            if horas is not None:
+                try:
+                    limit = int(horas) * 10  # aprox 10 mediciones por hora
+                    history = history[-limit:]
+                except:
+                    pass
+            self._set_json_headers()
+            self.wfile.write(json.dumps(history, ensure_ascii=False).encode('utf-8'))
+            return
+        # ====================================================
+
+        # Si ninguna ruta coincide
         self._set_json_headers(404)
         self.wfile.write(json.dumps({'detail': 'Not Found'}, ensure_ascii=False).encode('utf-8'))
+    
 
     def log_message(self, format, *args):
         return

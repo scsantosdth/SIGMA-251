@@ -1,5 +1,6 @@
 // src/services/offlineService.js
 import localForage from 'localforage';
+import { api } from './api.jsx'; // Necesario para conocer la URL base
 
 // Configurar localForage
 localForage.config({
@@ -8,8 +9,14 @@ localForage.config({
   description: 'Almacenamiento offline de mediciones'
 });
 
-// Guardar medición
+// Guardar medición (solo si no estamos usando la API local)
 export const saveMedicionOffline = async (medicion) => {
+  const apiBase = api.getApiBase();
+  // Si la API base es la local (receiver), no guardamos en IndexedDB
+  if (apiBase.includes('127.0.0.1:5050') || apiBase.includes('localhost')) {
+    return false;
+  }
+
   try {
     // Obtener mediciones existentes
     const mediciones = await localForage.getItem('mediciones') || [];
