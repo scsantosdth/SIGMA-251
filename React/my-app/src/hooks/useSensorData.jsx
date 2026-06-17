@@ -174,16 +174,36 @@ function useSensorData() {
         api.getLatestMeasurements(),
         api.getBatteryStatus(),
         api.getHistoricalData(hours),
+        api.getLocalLatestMeasurements(),
         api.getLocalHistoricalData(hours)
       ]);
 
-      const [measurementsResult, batteryResult, historicalResult, localHistoricalResult] = results;
-      const failedResults = results.filter((result) => result.status === 'rejected');
-      const allFailed = failedResults.length === results.length;
+      const [
+        measurementsResult,
+        batteryResult,
+        historicalResult,
+        localLatestResult,
+        localHistoricalResult
+      ] = results;
+      const onlineResults = [measurementsResult, batteryResult, historicalResult];
+      const failedOnlineResults = onlineResults.filter((result) => result.status === 'rejected');
+      const allOnlineFailed = failedOnlineResults.length === onlineResults.length;
+      const localHistorical = localHistoricalResult.status === 'fulfilled'
+        ? unwrapApiData(localHistoricalResult.value) || []
+        : [];
+      const localLatest = localLatestResult.status === 'fulfilled'
+        ? unwrapApiData(localLatestResult.value) || {}
+        : {};
+      const hasLocalHistorical = Array.isArray(localHistorical) && localHistorical.length > 0;
+      const hasLocalLatest = localLatest && Object.keys(localLatest).length > 0;
+      let loadedLocalData = false;
 
-      if (allFailed) {
+      if (allOnlineFailed) {
         setOffline(true);
-        await loadLocalData(hours);
+        if (!hasLocalHistorical && !hasLocalLatest) {
+          await loadLocalData(hours);
+          return;
+        }
       } else if (offline) {
         setOffline(false);
       }
@@ -197,6 +217,10 @@ function useSensorData() {
         } else {
           cacheOnlineMeasurement(data, null);
         }
+      } else if (hasLocalHistorical) {
+        loadedLocalData = applyOfflineData(localHistorical, historicalDataRef.current);
+      } else if (hasLocalLatest) {
+        loadedLocalData = applyOfflineData([localLatest], historicalDataRef.current);
       }
 
       if (batteryResult.status === 'fulfilled') {
@@ -206,21 +230,17 @@ function useSensorData() {
 
       if (historicalResult.status === 'fulfilled') {
         const historical = unwrapApiData(historicalResult.value) || [];
-        const localHistorical = localHistoricalResult.status === 'fulfilled'
-          ? unwrapApiData(localHistoricalResult.value) || []
-          : [];
         const mergedHistorical = mergeHistoricalData(historical, localHistorical);
         historicalDataRef.current = mergedHistorical;
         setHistoricalData(mergedHistorical);
-      } else if (localHistoricalResult.status === 'fulfilled') {
-        const localHistorical = unwrapApiData(localHistoricalResult.value) || [];
+      } else if (hasLocalHistorical) {
         historicalDataRef.current = mergeHistoricalData(historicalDataRef.current, localHistorical);
         setHistoricalData(historicalDataRef.current);
       }
-      if (failedResults.length === 0) {
+      if (failedOnlineResults.length === 0 || loadedLocalData) {
         setError(null);
       } else if (!sensorDataRef.current) {
-        const firstError = failedResults[0].reason;
+        const firstError = failedOnlineResults[0].reason;
         const message = firstError?.message || 'Error cargando datos';
         setError(message);
       }
@@ -232,7 +252,7 @@ function useSensorData() {
     } finally {
       setLoading(false);
     }
-  }, [timeRange, loadLocalData, offline, cacheOnlineMeasurement, mergeHistoricalData]);
+  }, [timeRange, loadLocalData, offline, cacheOnlineMeasurement, applyOfflineData, mergeHistoricalData]);
 
   useEffect(() => {
     const unsubscribe = onConnectivityChange((online) => {
