@@ -1,0 +1,29 @@
+[
+  {
+    "temperatura": 24.09,
+    "humedad": 72.45,
+    "luminosidad": 0.0,
+    "humedad_suelo": 97.6,
+    "bateria": 78.0,
+    "timestamp": "2026-06-16T06:34:17.020707",
+    "id": 1781609657020
+  },
+  {
+    "temperatura": 24.16,
+    "humedad": 72.21,
+    "luminosidad": 0.0,
+    "humedad_suelo": 97.6,
+    "bateria": 78.0,
+    "timestamp": "2026-06-16T06:35:00.871798",
+    "id": 1781609700871
+  },
+  {
+    "temperatura": 24.1,
+    "humedad": 72.36,
+    "luminosidad": 0.0,
+    "humedad_suelo": 97.6,
+    "bateria": 78.0,
+    "timestamp": "2026-06-16T06:35:44.739970",
+    "id": 1781609744739
+  }
+]

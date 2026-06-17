@@ -33,13 +33,44 @@ function useSensorData() {
     return payload;
   };
 
+  const getHistoricalRecordKey = useCallback((record) => {
+    if (!record) return null;
+
+    if (record.sensor) {
+      return [
+        'sensor',
+        record.sensor,
+        record.timestamp || '',
+        record.valor ?? '',
+        record.calidad ?? ''
+      ].join('|');
+    }
+
+    return [
+      'snapshot',
+      record.timestamp || '',
+      record.temperatura ?? '',
+      record.humedad ?? '',
+      record.luminosidad ?? '',
+      record.humedad_suelo ?? '',
+      record.bateria ?? ''
+    ].join('|');
+  }, []);
+
   const mergeHistoricalData = useCallback((baseRecords, extraRecords) => {
     const base = Array.isArray(baseRecords) ? baseRecords : [];
     const extra = Array.isArray(extraRecords) ? extraRecords : [];
-    return [...base, ...extra]
-      .filter(Boolean)
+
+    const merged = new Map();
+    [...base, ...extra].filter(Boolean).forEach((record) => {
+      const key = getHistoricalRecordKey(record);
+      if (!key) return;
+      merged.set(key, record);
+    });
+
+    return Array.from(merged.values())
       .sort((a, b) => new Date(a.timestamp || 0) - new Date(b.timestamp || 0));
-  }, []);
+  }, [getHistoricalRecordKey]);
 
   const cacheOnlineMeasurement = useCallback((measurements, battery) => {
     if (!measurements) return;
@@ -142,10 +173,11 @@ function useSensorData() {
       const results = await Promise.allSettled([
         api.getLatestMeasurements(),
         api.getBatteryStatus(),
-        api.getHistoricalData(hours)
+        api.getHistoricalData(hours),
+        api.getLocalHistoricalData(hours)
       ]);
 
-      const [measurementsResult, batteryResult, historicalResult] = results;
+      const [measurementsResult, batteryResult, historicalResult, localHistoricalResult] = results;
       const failedResults = results.filter((result) => result.status === 'rejected');
       const allFailed = failedResults.length === results.length;
 
@@ -174,8 +206,16 @@ function useSensorData() {
 
       if (historicalResult.status === 'fulfilled') {
         const historical = unwrapApiData(historicalResult.value) || [];
-        historicalDataRef.current = historical;
-        setHistoricalData(historical);
+        const localHistorical = localHistoricalResult.status === 'fulfilled'
+          ? unwrapApiData(localHistoricalResult.value) || []
+          : [];
+        const mergedHistorical = mergeHistoricalData(historical, localHistorical);
+        historicalDataRef.current = mergedHistorical;
+        setHistoricalData(mergedHistorical);
+      } else if (localHistoricalResult.status === 'fulfilled') {
+        const localHistorical = unwrapApiData(localHistoricalResult.value) || [];
+        historicalDataRef.current = mergeHistoricalData(historicalDataRef.current, localHistorical);
+        setHistoricalData(historicalDataRef.current);
       }
       if (failedResults.length === 0) {
         setError(null);
@@ -192,7 +232,7 @@ function useSensorData() {
     } finally {
       setLoading(false);
     }
-  }, [timeRange, loadLocalData, offline, cacheOnlineMeasurement]);
+  }, [timeRange, loadLocalData, offline, cacheOnlineMeasurement, mergeHistoricalData]);
 
   useEffect(() => {
     const unsubscribe = onConnectivityChange((online) => {

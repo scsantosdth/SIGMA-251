@@ -1,5 +1,0 @@
-2025-10-06 16:39:37.709009: {'temperatura': 28.37, 'humedad': 69.39, 'luminosidad': 55.81, 'humedad_suelo': 99.1, 'bateria': 28.0}
-2025-10-06 17:27:30.416510: {'temperatura': 27.53, 'humedad': 66.72, 'luminosidad': 0.0, 'humedad_suelo': 98.1, 'bateria': 25.0}
-2025-10-06 17:50:49.707179: {'temperatura': 27.4, 'humedad': 67.33, 'luminosidad': 0.0, 'humedad_suelo': 98.6, 'bateria': 26.0}
-2025-10-07 00:02:40.584782: {'temperatura': 26.1, 'humedad': 68.11, 'luminosidad': 0.0, 'humedad_suelo': 98.0, 'bateria': 21.0}
-2025-10-07 03:41:01.742007: {'temperatura': 25.15, 'humedad': 70.02, 'luminosidad': 0.0, 'humedad_suelo': 98.9, 'bateria': 23.0}

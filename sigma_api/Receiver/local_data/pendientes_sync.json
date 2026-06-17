@@ -1,0 +1,86 @@
+[
+  {
+    "id": 1781609657028,
+    "tipo": "mediciones",
+    "endpoint": "https://sigma-251.onrender.com/api/mediciones/waspmote",
+    "payload": {
+      "temperatura": 24.09,
+      "humedad": 72.45,
+      "luminosidad": 0.0,
+      "humedad_suelo": 97.6
+    },
+    "local_id": 1781609657020,
+    "attempts": 3,
+    "last_error": "HTTPSConnectionPool(host='sigma-251.onrender.com', port=443): Max retries exceeded with url: /api/mediciones/waspmote (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x0000024D92BCDE50>: Failed to resolve 'sigma-251.onrender.com' ([Errno 11001] getaddrinfo failed)\"))",
+    "created_at": "2026-06-16T06:34:17.028532"
+  },
+  {
+    "id": 1781609657044,
+    "tipo": "bateria",
+    "endpoint": "https://sigma-251.onrender.com/api/estado-sistema/waspmote",
+    "payload": {
+      "dispositivo_id": 1,
+      "bateria": 78.0
+    },
+    "local_id": 1781609657020,
+    "attempts": 3,
+    "last_error": "HTTPSConnectionPool(host='sigma-251.onrender.com', port=443): Max retries exceeded with url: /api/estado-sistema/waspmote (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x0000024D92BCCF50>: Failed to resolve 'sigma-251.onrender.com' ([Errno 11001] getaddrinfo failed)\"))",
+    "created_at": "2026-06-16T06:34:17.044705"
+  },
+  {
+    "id": 1781609700880,
+    "tipo": "mediciones",
+    "endpoint": "https://sigma-251.onrender.com/api/mediciones/waspmote",
+    "payload": {
+      "temperatura": 24.16,
+      "humedad": 72.21,
+      "luminosidad": 0.0,
+      "humedad_suelo": 97.6
+    },
+    "local_id": 1781609700871,
+    "attempts": 2,
+    "last_error": "HTTPSConnectionPool(host='sigma-251.onrender.com', port=443): Max retries exceeded with url: /api/mediciones/waspmote (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x0000024D92BCF610>: Failed to resolve 'sigma-251.onrender.com' ([Errno 11001] getaddrinfo failed)\"))",
+    "created_at": "2026-06-16T06:35:00.880189"
+  },
+  {
+    "id": 1781609700901,
+    "tipo": "bateria",
+    "endpoint": "https://sigma-251.onrender.com/api/estado-sistema/waspmote",
+    "payload": {
+      "dispositivo_id": 1,
+      "bateria": 78.0
+    },
+    "local_id": 1781609700871,
+    "attempts": 2,
+    "last_error": "HTTPSConnectionPool(host='sigma-251.onrender.com', port=443): Max retries exceeded with url: /api/estado-sistema/waspmote (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x0000024D92BCCE10>: Failed to resolve 'sigma-251.onrender.com' ([Errno 11001] getaddrinfo failed)\"))",
+    "created_at": "2026-06-16T06:35:00.901860"
+  },
+  {
+    "id": 1781609744748,
+    "tipo": "mediciones",
+    "endpoint": "https://sigma-251.onrender.com/api/mediciones/waspmote",
+    "payload": {
+      "temperatura": 24.1,
+      "humedad": 72.36,
+      "luminosidad": 0.0,
+      "humedad_suelo": 97.6
+    },
+    "local_id": 1781609744739,
+    "attempts": 1,
+    "last_error": "HTTPSConnectionPool(host='sigma-251.onrender.com', port=443): Max retries exceeded with url: /api/mediciones/waspmote (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x0000024D92BCEAD0>: Failed to resolve 'sigma-251.onrender.com' ([Errno 11001] getaddrinfo failed)\"))",
+    "created_at": "2026-06-16T06:35:44.748234"
+  },
+  {
+    "id": 1781609744766,
+    "tipo": "bateria",
+    "endpoint": "https://sigma-251.onrender.com/api/estado-sistema/waspmote",
+    "payload": {
+      "dispositivo_id": 1,
+      "bateria": 78.0
+    },
+    "local_id": 1781609744739,
+    "attempts": 1,
+    "last_error": "HTTPSConnectionPool(host='sigma-251.onrender.com', port=443): Max retries exceeded with url: /api/estado-sistema/waspmote (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x0000024D92BCC7D0>: Failed to resolve 'sigma-251.onrender.com' ([Errno 11001] getaddrinfo failed)\"))",
+    "created_at": "2026-06-16T06:35:44.766380"
+  }
+]

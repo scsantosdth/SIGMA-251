@@ -35,30 +35,37 @@ function RealTimeChart({ historicalData, timeRange, onTimeRangeChange }) {
     // Usar forEach solo si es array
     historicalData.forEach(item => {
       if (!item) return; // Saltar items null
-      
-      // Obtener hora del timestamp
-      const time = new Date(item.timestamp).toLocaleTimeString('es-ES', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
+
+      const rawDate = new Date(item.timestamp)
+      if (Number.isNaN(rawDate.getTime())) return
+
+      // Agrupar por segundo para no perder lecturas distintas que comparten el mismo minuto
+      const timeKey = rawDate.toISOString().slice(0, 19)
+      const time = rawDate.toLocaleString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
       })
-      
-      if (!dataByTime[time]) {
-        dataByTime[time] = { time }
+
+      if (!dataByTime[timeKey]) {
+        dataByTime[timeKey] = { time, timeKey }
       }
-      
+
       if (item.sensor && Object.prototype.hasOwnProperty.call(item, 'valor')) {
         const key = sensorKeyMap[item.sensor] || item.sensor
-        dataByTime[time][key] = item.valor ?? 0
+        dataByTime[timeKey][key] = item.valor ?? 0
       } else {
         // Usar valores directamente (sin .sensor ni .valor)
-        dataByTime[time].temperatura = item.temperatura ?? 0
-        dataByTime[time].humedad = item.humedad ?? 0
-        dataByTime[time].luminosidad = item.luminosidad ?? 0
-        dataByTime[time].humedad_suelo = item.humedad_suelo ?? 0
+        dataByTime[timeKey].temperatura = item.temperatura ?? 0
+        dataByTime[timeKey].humedad = item.humedad ?? 0
+        dataByTime[timeKey].luminosidad = item.luminosidad ?? 0
+        dataByTime[timeKey].humedad_suelo = item.humedad_suelo ?? 0
       }
     })
     
-    return Object.values(dataByTime)
+    return Object.values(dataByTime).sort((a, b) => a.timeKey.localeCompare(b.timeKey))
   }
 
   const chartData = processChartData()
