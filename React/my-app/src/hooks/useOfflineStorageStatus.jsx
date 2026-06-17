@@ -15,7 +15,7 @@ export function useOfflineStorageStatus() {
     const checkStorage = async () => {
       try {
         const health = await api.getLocalHealth();
-        const count = Number(health?.history_count ?? 0);
+        const count = Number(health?.pending_count ?? 0);
         const percentage = (count / MAX_MEDICIONES) * 100;
         setStatus({
           count,
