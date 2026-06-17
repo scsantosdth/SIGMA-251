@@ -8,6 +8,18 @@ from app.models.database_models import EstadoSistema, EventoSistema
 
 router = APIRouter(prefix="/api/estado-sistema", tags=["estado-sistema"])
 
+def parse_timestamp(value):
+    if not value:
+        return None
+
+    try:
+        timestamp = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        if timestamp.tzinfo is not None:
+            timestamp = timestamp.replace(tzinfo=None)
+        return timestamp
+    except ValueError:
+        return None
+
 @router.post("/waspmote")
 async def recibir_estado_waspmote(
     datos: Dict[str, Any], 
@@ -33,7 +45,8 @@ async def recibir_estado_waspmote(
         estado = EstadoSistema(
             dispositivo_id=dispositivo_id,
             bateria=float(bateria),
-            estado_conexion=True
+            estado_conexion=True,
+            timestamp=parse_timestamp(datos.get("timestamp")) or datetime.now()
         )
         
         db.add(estado)

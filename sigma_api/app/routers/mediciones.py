@@ -22,6 +22,18 @@ SENSOR_NAMES = {v: k for k, v in SENSOR_MAPPING.items()}
 ultima_medicion_recibida = None
 ultimo_guardado_timestamp = None
 
+def parse_timestamp(value):
+    if not value:
+        return None
+
+    try:
+        timestamp = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        if timestamp.tzinfo is not None:
+            timestamp = timestamp.replace(tzinfo=None)
+        return timestamp
+    except ValueError:
+        return None
+
 @router.post("/waspmote")
 async def recibir_mediciones_waspmote(
     datos: Dict[str, Any], 
@@ -45,6 +57,8 @@ async def recibir_mediciones_waspmote(
     
     # Guardar la última medición para modo manual
     ultima_medicion_recibida = datos.copy()
+    offline_sync = bool(datos.get("offline_sync"))
+    timestamp_medicion = parse_timestamp(datos.get("timestamp")) or datetime.now()
     
     # Obtener intervalo de configuración
     config = db.query(Configuracion).filter(Configuracion.clave == "auto_intervalo_minutos").first()
@@ -54,7 +68,9 @@ async def recibir_mediciones_waspmote(
     ahora = datetime.now()
     guardar_auto = False
     
-    if ultimo_guardado_timestamp is None:
+    if offline_sync:
+        guardar_auto = True
+    elif ultimo_guardado_timestamp is None:
         guardar_auto = True
     else:
         diferencia = ahora - ultimo_guardado_timestamp
@@ -74,11 +90,17 @@ async def recibir_mediciones_waspmote(
         for tipo_sensor, valor in datos.items():
             if tipo_sensor in SENSOR_MAPPING and valor is not None:
                 sensor_id = SENSOR_MAPPING[tipo_sensor]
-                medicion = Medicion(sensor_id=sensor_id, valor=float(valor), calidad="buena")
+                medicion = Medicion(
+                    sensor_id=sensor_id,
+                    valor=float(valor),
+                    calidad="buena",
+                    timestamp=timestamp_medicion
+                )
                 db.add(medicion)
         
         db.commit()
-        ultimo_guardado_timestamp = ahora
+        if not offline_sync:
+            ultimo_guardado_timestamp = ahora
         
         return {
             "status": "success",
