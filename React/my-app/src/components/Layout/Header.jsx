@@ -2,9 +2,11 @@
 import { useEffect, useState } from 'react';
 import '../../styles/index.css';
 import OfflineStorageIndicator from '../Dashboard/OfflineStorageIndicator.jsx';
+import BatteryIcon from '../Dashboard/BatteryIcon.jsx'; // ← nuevo
 
-function Header({ onLogout, onToggleSidebar, onManualMeasure }) {
+function Header({ onLogout, onToggleSidebar, onManualMeasure, batteryData }) {
   const [isOnline, setIsOnline] = useState(true);
+  const batteryPercentage = batteryData?.bateria ?? 0; // valor seguro
 
   useEffect(() => {
     const checkConnection = async () => {
@@ -82,8 +84,14 @@ function Header({ onLogout, onToggleSidebar, onManualMeasure }) {
       <div className="header-right">
         <div className="header-actions">
           <OfflineStorageIndicator compact={true} />
+
+          <div className="battery-header-indicator" title={`Batería: ${batteryPercentage}%`}>
+            <span className="storage-percent">{Math.round(batteryPercentage)}%</span>
+            <BatteryIcon percentage={batteryPercentage} width={16} height={20} />
+          </div>
+
           <button className="manual-measure-button" onClick={onManualMeasure}>
-            📊 Medir ahora
+            Medir ahora
           </button>
           {onLogout && (
             <button className="logout-button" onClick={onLogout}>

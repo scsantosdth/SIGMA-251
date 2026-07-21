@@ -4,10 +4,12 @@ import Header from './Header.jsx';
 import NavigationSidebar from './NavigationSidebar.jsx';
 import { applyTheme, getTheme } from '../../utils/theme.jsx';
 import '../../styles/index.css';
-import { api } from '../../services/api.jsx'; 
+import { api } from '../../services/api.jsx';
+import useSensorData from '../../hooks/useSensorData.jsx'; // ← agregar
 
 function MainLayout({ children, onLogout }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { batteryData } = useSensorData(); // ← obtener batteryData
 
   useEffect(() => {
     applyTheme(getTheme());
@@ -43,6 +45,7 @@ function MainLayout({ children, onLogout }) {
           onLogout={onLogout} 
           onToggleSidebar={toggleSidebar}
           onManualMeasure={handleManualMeasure}
+          batteryData={batteryData} // ← pasar prop
         />
         
         <main className="main-content">

@@ -787,7 +787,7 @@
 }
 
 .battery-status {
-  font-size: 0.85rem;
+  font-size: 0.70rem;
   color: var(--text-secondary, #cbd5e1);
 }
 
@@ -809,4 +809,16 @@
   0% { opacity: 1; }
   50% { opacity: 0.6; }
   100% { opacity: 1; }
+}
+
+.battery-header-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px; 
+  margin-right: 10px;
+}
+
+.battery-header-indicator .storage-percent,
+.offline-storage-compact .storage-percent {
+  font-size: 0.9rem;
 }
