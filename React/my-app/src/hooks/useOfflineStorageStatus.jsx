@@ -21,7 +21,7 @@ export function useOfflineStorageStatus() {
           count,
           max: MAX_MEDICIONES,
           percentage,
-          isCritical: percentage >= 80
+          isCritical: percentage > 80
         });
       } catch (error) {
         console.error('Error obteniendo almacenamiento offline:', error);

@@ -13,31 +13,30 @@ function OfflineStorageIndicator({ compact = false }) {
 
   // Escuchar eventos de conectividad
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
+    const updateConnectionStatus = () => {
+      setIsOnline(typeof navigator !== 'undefined' ? navigator.onLine : true);
+    };
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    updateConnectionStatus();
+    window.addEventListener('online', updateConnectionStatus);
+    window.addEventListener('offline', updateConnectionStatus);
 
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', updateConnectionStatus);
+      window.removeEventListener('offline', updateConnectionStatus);
     };
   }, []);
 
   // Determinar color según porcentaje (para la carpeta)
   const getFolderColor = () => {
     if (percentage < 70) return '#4CAF50';   // verde
-    if (percentage < 80) return '#FF9800';   // naranja
+    if (percentage <= 80) return '#FF9800';  // naranja
     return '#F44336';                        // rojo
   };
 
   // Colores dinámicos
   const cloudColor = isOnline ? '#4A90E2' : '#B0B0B0';
-  const folderColor = getFolderColor();
-
-  // Depuración (puedes eliminar esta línea después de probar)
-  console.log('porcentaje:', percentage, 'online:', isOnline);
+  const folderColor = isOnline ? '#B0B0B0' : getFolderColor();
 
   // Versión compacta para el header
   if (compact) {
@@ -69,7 +68,7 @@ function OfflineStorageIndicator({ compact = false }) {
             style={{ transition: 'fill 0.3s ease' }}
           />
         </svg>
-        <span className={`storage-percent ${isCritical ? 'critical' : ''}`}>
+        <span className={`storage-percent ${!isOnline && isCritical ? 'critical' : ''}`}>
           {Math.round(percentage)}%
         </span>
       </div>
@@ -86,7 +85,7 @@ function OfflineStorageIndicator({ compact = false }) {
             className="storage-fill"
             style={{ 
               width: `${percentage}%`,
-              backgroundColor: isCritical ? '#e74c3c' : '#2ecc71'
+              backgroundColor: folderColor
             }}
           />
         </div>
@@ -94,7 +93,7 @@ function OfflineStorageIndicator({ compact = false }) {
           <span className="storage-value">{count} / {max}</span>
           <span className="storage-percentage">{Math.round(percentage)}%</span>
         </div>
-        {isCritical && (
+        {!isOnline && isCritical && (
           <div className="storage-warning">
             ⚠️ Almacenamiento casi lleno (80%). Sincroniza datos.
           </div>
