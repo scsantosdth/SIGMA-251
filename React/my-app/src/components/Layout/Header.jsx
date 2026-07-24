@@ -86,8 +86,8 @@ function Header({ onLogout, onToggleSidebar, onManualMeasure, batteryData }) {
           <OfflineStorageIndicator compact={true} />
 
           <div className="battery-header-indicator" title={`Batería: ${batteryPercentage}%`}>
-            <span className="storage-percent">{Math.round(batteryPercentage)}%</span>
             <BatteryIcon percentage={batteryPercentage} width={16} height={20} />
+            <span className="storage-percent">{Math.round(batteryPercentage)}%</span>
           </div>
 
           <button className="manual-measure-button" onClick={onManualMeasure}>
