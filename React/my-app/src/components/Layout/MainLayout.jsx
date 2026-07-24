@@ -37,7 +37,8 @@ function MainLayout({ children, onLogout }) {
     <div className="main-layout">
       <NavigationSidebar 
         isOpen={sidebarOpen} 
-        onClose={closeSidebar} 
+        onClose={closeSidebar}
+        onLogout={onLogout} 
       />
       
       <div className="layout-content">

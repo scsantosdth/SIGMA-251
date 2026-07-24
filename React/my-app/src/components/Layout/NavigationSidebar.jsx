@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { api } from '../../services/api.jsx';
 import '../../styles/index.css';
 
-function NavigationSidebar({ isOpen, onClose }) {
+function NavigationSidebar({ isOpen, onClose, onLogout }) {
   const user = api.getUser();
   const isAdmin = user?.rol === 'admin';
 
@@ -93,6 +93,16 @@ function NavigationSidebar({ isOpen, onClose }) {
 
         <div className="sidebar-footer">
           <div className="system-info">
+            <button
+              ClassName="logout-footer-btn"
+              onClick={() => {
+                onClose();
+                onLogout();
+              }}
+            >
+              <span className="logout-icon">🚪</span>
+              <span>Cerrar sesión</span>
+            </button>
             <div className="info-item">
               <span className="info-label">Versión:</span>
               <span className="info-value">1.0.0</span>
