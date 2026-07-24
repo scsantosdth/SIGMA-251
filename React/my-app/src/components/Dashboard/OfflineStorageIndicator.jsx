@@ -13,17 +13,42 @@ function OfflineStorageIndicator({ compact = false }) {
 
   // Escuchar eventos de conectividad
   useEffect(() => {
-    const updateConnectionStatus = () => {
-      setIsOnline(typeof navigator !== 'undefined' ? navigator.onLine : true);
+    let disposed = false;
+
+    const checkConnection = async () => {
+      if (typeof navigator === 'undefined' || !navigator.onLine) {
+        if (!disposed) setIsOnline(false);
+        return;
+      }
+
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 2500);
+
+      try {
+        await fetch('https://www.gstatic.com/generate_204', {
+          method: 'GET',
+          mode: 'no-cors',
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        if (!disposed) setIsOnline(true);
+      } catch {
+        if (!disposed) setIsOnline(false);
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
     };
 
-    updateConnectionStatus();
-    window.addEventListener('online', updateConnectionStatus);
-    window.addEventListener('offline', updateConnectionStatus);
+    checkConnection();
+    window.addEventListener('online', checkConnection);
+    window.addEventListener('offline', checkConnection);
+    const intervalId = window.setInterval(checkConnection, 3000);
 
     return () => {
-      window.removeEventListener('online', updateConnectionStatus);
-      window.removeEventListener('offline', updateConnectionStatus);
+      disposed = true;
+      window.removeEventListener('online', checkConnection);
+      window.removeEventListener('offline', checkConnection);
+      window.clearInterval(intervalId);
     };
   }, []);
 
