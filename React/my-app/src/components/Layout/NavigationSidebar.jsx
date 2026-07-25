@@ -92,25 +92,20 @@ function NavigationSidebar({ isOpen, onClose, onLogout }) {
         </nav>
 
         <div className="sidebar-footer">
-          <div className="system-info">
+          <div className="system-info">            
+            <div className="info-item">
+              <span className="info-label">Versión:</span>
+              <span className="info-value">1.0.0</span>
+            </div>            
             <button
-              ClassName="logout-footer-btn"
+              className="logout-footer-btn"
               onClick={() => {
                 onClose();
                 onLogout();
               }}
             >
-              <span className="logout-icon">🚪</span>
               <span>Cerrar sesión</span>
             </button>
-            <div className="info-item">
-              <span className="info-label">Versión:</span>
-              <span className="info-value">1.0.0</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">Sesión:</span>
-              <span className="info-value active">Activa</span>
-            </div>
           </div>
         </div>
       </aside>

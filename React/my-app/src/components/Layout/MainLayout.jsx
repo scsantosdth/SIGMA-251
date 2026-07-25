@@ -43,7 +43,6 @@ function MainLayout({ children, onLogout }) {
       
       <div className="layout-content">
         <Header 
-          onLogout={onLogout} 
           onToggleSidebar={toggleSidebar}
           onManualMeasure={handleManualMeasure}
           batteryData={batteryData} // ← pasar prop

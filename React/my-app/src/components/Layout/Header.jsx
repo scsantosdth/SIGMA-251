@@ -4,7 +4,7 @@ import '../../styles/index.css';
 import OfflineStorageIndicator from '../Dashboard/OfflineStorageIndicator.jsx';
 import BatteryIcon from '../Dashboard/BatteryIcon.jsx'; // ← nuevo
 
-function Header({ onLogout, onToggleSidebar, onManualMeasure, batteryData }) {
+function Header({ onToggleSidebar, onManualMeasure, batteryData }) {
   const [isOnline, setIsOnline] = useState(true);
   const batteryPercentage = batteryData?.bateria ?? 0; // valor seguro
 
@@ -74,7 +74,9 @@ function Header({ onLogout, onToggleSidebar, onManualMeasure, batteryData }) {
             </div>
           </div>
         </div>
+      </div>
 
+      <div className="header-center">
         <div className={`system-status ${isOnline ? 'online' : 'offline'}`} aria-live="polite" title="Estado de conexión">
           <span className={`status-indicator ${isOnline ? 'online' : 'offline'}`}></span>
           <span>{isOnline ? 'Online' : 'Offline'}</span>
@@ -93,12 +95,6 @@ function Header({ onLogout, onToggleSidebar, onManualMeasure, batteryData }) {
           <button className="manual-measure-button" onClick={onManualMeasure}>
             Medir ahora
           </button>
-          {onLogout && (
-            <button className="logout-button" onClick={onLogout}>
-              <span className="logout-icon">{'>'}</span>
-              Salir
-            </button>
-          )}
         </div>
       </div>
     </header>

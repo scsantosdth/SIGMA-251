@@ -22,6 +22,20 @@
   gap: 20px;
 }
 
+.header-left {
+  flex: 1;
+}
+
+.header-center {
+  flex: 0 1 auto;
+  justify-content: center;
+}
+
+.header-right {
+  flex: 1;
+  justify-content: flex-end;
+}
+
 /* Hamburger menu */
 .hamburger-menu {
   display: none;
@@ -191,30 +205,7 @@
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 15px;
-}
-
-.logout-button {
-  background: #e74c3c;
-  color: white;
-  border: none;
-  padding: 8px 15px;
-  border-radius: 20px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: background 0.3s;
-}
-
-.logout-button:hover {
-  background: #c0392b;
-}
-
-.logout-icon {
-  font-size: 1rem;
+  gap: 12px;
 }
 
 /* ===== MAIN LAYOUT ===== */
@@ -585,14 +576,6 @@
     font-size: 1rem;
   }
   
-  .logout-button span:not(.logout-icon) {
-    display: none;
-  }
-  
-  .logout-button {
-    padding: 8px 12px;
-  }
-  
   .main-content {
     padding: 1rem;
   }
@@ -703,7 +686,7 @@
 }
 
 .manual-measure-button {
-  background: linear-gradient(135deg, #2ecc71, #27ae60);
+  background: #1e3a8a;
   border: none;
   color: white;
   padding: 8px 16px;
@@ -720,8 +703,8 @@
 }
 
 .manual-measure-button:hover {
-  background: linear-gradient(135deg, #27ae60, #219a52);
   transform: translateY(-1px);
+  background:  #1e40af;
   box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
 
@@ -798,7 +781,7 @@
   background: rgba(0,0,0,0.05);
   padding: 4px 8px;
   border-radius: 20px;
-  margin-right: 12px;
+  margin-right: 0;
 }
 .storage-percent.critical {
   color: #e74c3c;
@@ -826,13 +809,6 @@
 
 /* Botón de cerrar sesión en el footer del sidebar */
 .logout-footer-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 8px 12px;
-  margin-top: 12px;
   background: rgba(239, 68, 68, 0.08);
   border: 1px solid rgba(239, 68, 68, 0.2);
   border-radius: 6px;
@@ -841,6 +817,13 @@
   font-weight: 500;
   cursor: pointer;
   transition: background 0.2s, border-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  margin-top: 12px;
 }
 
 .logout-footer-btn:hover {
@@ -851,3 +834,4 @@
 .logout-footer-btn .logout-icon {
   font-size: 1rem;
 }
+
