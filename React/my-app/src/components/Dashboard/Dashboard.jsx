@@ -15,6 +15,7 @@ function Dashboard() {
     loading,
     error,
     offline,
+    serial,
     changeTimeRange
   } = useSensorData();
 
@@ -23,39 +24,56 @@ function Dashboard() {
     window.location.href = '/';
   };
 
-  if (loading) {
-    return (
-      <MainLayout onLogout={handleLogout}>
-        <div className="loading-container">
-          <div className="loading">Cargando datos de sensores...</div>
-        </div>
-      </MainLayout>
-    );
-  }
-
-  if (error && !sensorData) {
-    return (
-      <MainLayout onLogout={handleLogout}>
-        <div className="error-container">
-          <div className="error">{error}</div>
-        </div>
-      </MainLayout>
-    );
-  }
-
   const temp = sensorData?.temperatura?.valor ?? 0;
   const hum = sensorData?.humedad?.valor ?? 0;
   const lum = sensorData?.luminosidad?.valor ?? 0;
   const soil = sensorData?.humedad_suelo?.valor ?? 0;
   const batteryValue = batteryData;
+  const serialLabel = serial.connected
+    ? 'Desconectar XBee'
+    : serial.connecting
+      ? 'Conectando...'
+      : 'Conectar XBee';
+
+  const handleSerialClick = () => {
+    if (serial.connected) {
+      serial.disconnect();
+      return;
+    }
+
+    serial.connect();
+  };
 
   return (
-    <MainLayout onLogout={handleLogout}>
+    <MainLayout onLogout={handleLogout} batteryData={batteryValue}>
       <div className="dashboard-container">
         <div className="dashboard-main">
           <div className="dashboard-header">
             <h2>Panel de Monitoreo en Tiempo Real</h2>
+            <div className="dashboard-actions">
+              <div
+                className={`xbee-status ${serial.connected ? 'connected' : 'idle'}`}
+                title={serial.lastLine || serial.error || 'Estado del enlace XBee'}
+              >
+                <span className="xbee-status-dot"></span>
+                <span>{serial.connected ? 'XBee conectado' : 'XBee sin conectar'}</span>
+              </div>
+              <button
+                className={`xbee-connect-button ${serial.connected ? 'connected' : ''}`}
+                onClick={handleSerialClick}
+                disabled={!serial.supported || serial.connecting}
+                title={!serial.supported ? 'Disponible en Chrome o Edge con HTTPS/local' : 'Abrir selector de puerto serial'}
+              >
+                {serialLabel}
+              </button>
+            </div>
           </div>
+
+          {(loading || error || serial.error || offline) && (
+            <div className={`dashboard-notice ${error || serial.error ? 'warning' : 'info'}`}>
+              {serial.error || error || (offline ? 'Modo offline activo. Las lecturas se guardaran localmente.' : 'Cargando datos de sensores...')}
+            </div>
+          )}
 
           <div className="metrics-grid">
             <MetricCard
@@ -98,7 +116,7 @@ function Dashboard() {
         </div>
 
         <div className="dashboard-sidebar">
-          <StatusSidebar batteryData={batteryValue} />
+          <StatusSidebar batteryData={batteryValue} serial={serial} />
         </div>
       </div>
     </MainLayout>

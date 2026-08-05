@@ -3,10 +3,12 @@ import { api } from '../services/api.jsx';
 import {
   saveMedicionOffline,
   getMedicionesOffline,
+  markMedicionSynced,
   syncOfflineMediciones,
   isOnline,
   onConnectivityChange
 } from '../services/offlineService';
+import { useXBeeSerial } from './useXBeeSerial.jsx';
 
 function useSensorData() {
   const [sensorData, setSensorData] = useState(null);
@@ -20,6 +22,7 @@ function useSensorData() {
   const sensorDataRef = useRef(sensorData);
   const batteryDataRef = useRef(batteryData);
   const historicalDataRef = useRef(historicalData);
+  const serialConnectedRef = useRef(false);
 
   useEffect(() => {
     sensorDataRef.current = sensorData;
@@ -72,14 +75,90 @@ function useSensorData() {
       .sort((a, b) => new Date(a.timestamp || 0) - new Date(b.timestamp || 0));
   }, [getHistoricalRecordKey]);
 
-  const cacheOnlineMeasurement = useCallback((measurements, battery) => {
-    if (!measurements) return;
+  const applyOfflineData = useCallback((records, baseHistory = historicalDataRef.current) => {
+    if (!Array.isArray(records) || records.length === 0) return false;
 
-    // Evitar guardar en IndexedDB cuando estamos offline o cuando la API base es la local (127.0.0.1:5050)
-    const apiBase = api.getApiBase();
-    if (offline || apiBase.includes('127.0.0.1:5050')) {
-      return;
+    const latest = records[records.length - 1];
+    const mergedHistory = mergeHistoricalData(baseHistory, records);
+    setSensorData({
+      temperatura: { valor: latest.temperatura, timestamp: latest.timestamp, calidad: latest.source || 'offline' },
+      humedad: { valor: latest.humedad, timestamp: latest.timestamp, calidad: latest.source || 'offline' },
+      humedad_suelo: { valor: latest.humedad_suelo, timestamp: latest.timestamp, calidad: latest.source || 'offline' },
+      luminosidad: { valor: latest.luminosidad, timestamp: latest.timestamp, calidad: latest.source || 'offline' }
+    });
+    historicalDataRef.current = mergedHistory;
+    setHistoricalData(mergedHistory);
+
+    if (latest.bateria !== undefined && latest.bateria !== null) {
+      setBatteryData({ bateria: latest.bateria, timestamp: latest.timestamp, offline: !latest.synced });
     }
+
+    setError(null);
+    setLoading(false);
+    return true;
+  }, [mergeHistoricalData]);
+
+  const syncSingleSerialMeasurement = useCallback(async (record) => {
+    if (!isOnline() || !api.isAuthenticated()) return false;
+
+    try {
+      await api.postWaspmoteMeasurement({
+        temperatura: record.temperatura,
+        humedad: record.humedad,
+        luminosidad: record.luminosidad,
+        humedad_suelo: record.humedad_suelo,
+        timestamp: record.timestamp,
+      });
+
+      if (record.bateria !== undefined && record.bateria !== null) {
+        await api.postWaspmoteBattery({
+          dispositivo_id: 1,
+          bateria: record.bateria,
+          timestamp: record.timestamp,
+        }).catch((syncError) => {
+          console.warn('No se pudo sincronizar bateria:', syncError);
+        });
+      }
+
+      await markMedicionSynced(record.id);
+      return true;
+    } catch (syncError) {
+      console.warn('Medicion guardada localmente; se sincronizara luego:', syncError);
+      return false;
+    }
+  }, []);
+
+  const handleSerialMeasurement = useCallback(async (measurement) => {
+    const timestamp = new Date().toISOString();
+    const record = {
+      ...measurement,
+      timestamp,
+      id: Date.now(),
+      source: 'web-serial',
+      synced: false,
+    };
+
+    applyOfflineData([record], historicalDataRef.current);
+
+    const savedRecord = await saveMedicionOffline(record, { synced: false });
+    if (!savedRecord) return;
+
+    const synced = await syncSingleSerialMeasurement(savedRecord);
+    if (synced) {
+      syncOfflineMediciones(api).catch((syncError) => {
+        console.warn('Error sincronizando pendientes:', syncError);
+      });
+    }
+  }, [applyOfflineData, syncSingleSerialMeasurement]);
+
+  const serial = useXBeeSerial(handleSerialMeasurement);
+
+  useEffect(() => {
+    serialConnectedRef.current = serial.connected;
+  }, [serial.connected]);
+
+  const cacheOnlineMeasurement = useCallback((measurements, battery) => {
+    if (!measurements || serialConnectedRef.current) return;
 
     const record = {
       temperatura: measurements.temperatura?.valor ?? measurements.temperatura ?? null,
@@ -89,32 +168,10 @@ function useSensorData() {
       bateria: battery?.bateria ?? battery?.valor ?? battery?.level ?? null
     };
 
-    saveMedicionOffline(record).catch((error) => {
-      console.error('Error guardando medicion offline:', error);
+    saveMedicionOffline(record, { synced: true }).catch((storageError) => {
+      console.error('Error guardando medicion en cache offline:', storageError);
     });
-  }, [offline]);
-
-  const applyOfflineData = useCallback((records, baseHistory = historicalDataRef.current) => {
-    if (!Array.isArray(records) || records.length === 0) return false;
-
-    const latest = records[records.length - 1];
-    const mergedHistory = mergeHistoricalData(baseHistory, records);
-    setSensorData({
-      temperatura: { valor: latest.temperatura, timestamp: latest.timestamp, calidad: 'offline' },
-      humedad: { valor: latest.humedad, timestamp: latest.timestamp, calidad: 'offline' },
-      humedad_suelo: { valor: latest.humedad_suelo, timestamp: latest.timestamp, calidad: 'offline' },
-      luminosidad: { valor: latest.luminosidad, timestamp: latest.timestamp, calidad: 'offline' }
-    });
-    historicalDataRef.current = mergedHistory;
-    setHistoricalData(mergedHistory);
-
-    if (latest.bateria !== undefined && latest.bateria !== null) {
-      setBatteryData({ bateria: latest.bateria, timestamp: latest.timestamp, offline: true });
-    }
-
-    setError(null);
-    return true;
-  }, [mergeHistoricalData]);
+  }, []);
 
   const loadIndexedDBFallback = useCallback(async () => {
     try {
@@ -126,6 +183,11 @@ function useSensorData() {
   }, [applyOfflineData]);
 
   const loadLocalData = useCallback(async (hours = timeRange) => {
+    if (serialConnectedRef.current) {
+      setLoading(false);
+      return;
+    }
+
     try {
       const [latestResult, historyResult] = await Promise.allSettled([
         api.getLocalLatestMeasurements(),
@@ -149,16 +211,24 @@ function useSensorData() {
 
       const indexedLoaded = await loadIndexedDBFallback();
       if (!indexedLoaded) {
-        setError('No se pudieron cargar datos locales');
+        setError('Conecta el XBee para recibir datos locales');
       }
     } catch {
-      await loadIndexedDBFallback();
+      const indexedLoaded = await loadIndexedDBFallback();
+      if (!indexedLoaded) {
+        setError('Conecta el XBee para recibir datos locales');
+      }
     } finally {
       setLoading(false);
     }
   }, [applyOfflineData, loadIndexedDBFallback, timeRange]);
 
   const loadOnlineData = useCallback(async (hours = timeRange) => {
+    if (serialConnectedRef.current) {
+      setLoading(false);
+      return;
+    }
+
     if (!api.isAuthenticated()) {
       setError('No autenticado');
       setLoading(false);
@@ -237,6 +307,7 @@ function useSensorData() {
         historicalDataRef.current = mergeHistoricalData(historicalDataRef.current, localHistorical);
         setHistoricalData(historicalDataRef.current);
       }
+
       if (failedOnlineResults.length === 0 || loadedLocalData) {
         setError(null);
       } else if (!sensorDataRef.current) {
@@ -268,35 +339,40 @@ function useSensorData() {
   }, [loadOnlineData]);
 
   useEffect(() => {
+    if (serial.connected) {
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     if (offline) {
       loadLocalData();
     } else {
       loadOnlineData();
     }
-  }, [offline, loadLocalData, loadOnlineData]);
+  }, [offline, loadLocalData, loadOnlineData, serial.connected]);
 
   useEffect(() => {
-    if (!offline) {
+    if (!offline && !serial.connected) {
       const interval = setInterval(() => {
         loadOnlineData();
       }, 10000);
       return () => clearInterval(interval);
     }
-  }, [offline, loadOnlineData]);
+  }, [offline, loadOnlineData, serial.connected]);
 
-  // Intervalo para modo offline: se reduce la frecuencia a 30 segundos (antes 5)
   useEffect(() => {
-    if (offline) {
+    if (offline && !serial.connected) {
       const interval = setInterval(() => {
         loadLocalData();
       }, 30000);
       return () => clearInterval(interval);
     }
-  }, [offline, loadLocalData]);
+  }, [offline, loadLocalData, serial.connected]);
 
   const changeTimeRange = (hours) => {
     setTimeRange(hours);
-    if (!offline) {
+    if (!serialConnectedRef.current && !offline) {
       loadOnlineData(hours);
     }
   };
@@ -309,6 +385,7 @@ function useSensorData() {
     loading,
     error,
     offline,
+    serial,
     refetch: offline ? loadLocalData : () => loadOnlineData(timeRange),
     changeTimeRange
   };
