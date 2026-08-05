@@ -164,7 +164,23 @@ function useSensorData() {
       cloudSync: shouldSyncToCloud,
     };
 
-    applyOfflineData([record], historicalDataRef.current);
+    if (shouldSyncToCloud) {
+      // La grafica conserva solo las muestras del intervalo configurado.
+      applyOfflineData([record], historicalDataRef.current);
+    } else {
+      // Las tarjetas siguen siendo tiempo real aunque la muestra no vaya a la grafica.
+      setSensorData({
+        temperatura: { valor: record.temperatura, timestamp, calidad: record.source },
+        humedad: { valor: record.humedad, timestamp, calidad: record.source },
+        humedad_suelo: { valor: record.humedad_suelo, timestamp, calidad: record.source },
+        luminosidad: { valor: record.luminosidad, timestamp, calidad: record.source },
+      });
+      if (record.bateria !== undefined && record.bateria !== null) {
+        setBatteryData({ bateria: record.bateria, timestamp, offline: false });
+      }
+      setError(null);
+      setLoading(false);
+    }
 
     const savedRecord = await saveMedicionOffline(record, { synced: !shouldSyncToCloud });
     if (!savedRecord || !shouldSyncToCloud) return;
@@ -195,7 +211,8 @@ function useSensorData() {
 
   const loadIndexedDBFallback = useCallback(async () => {
     try {
-      const indexedData = await getMedicionesOffline();
+      const indexedData = (await getMedicionesOffline())
+        .filter((record) => record.cloudSync !== false);
       return applyOfflineData(indexedData, historicalDataRef.current);
     } catch {
       return false;
@@ -275,29 +292,8 @@ function useSensorData() {
 
       if (historicalResult.status === 'fulfilled') {
         const historical = unwrapApiData(historicalResult.value) || [];
-        // Supabase contiene solo las muestras programadas. Combinamos esas con
-        // IndexedDB para no perder en una recarga las lecturas en tiempo real.
-        const cutoff = Date.now() - hours * 60 * 60 * 1000;
-        const indexedRecords = (await getMedicionesOffline()).filter((record) => {
-          const time = new Date(record.timestamp || 0).getTime();
-          return Number.isFinite(time) && time >= cutoff;
-        });
-        const mergedHistorical = mergeHistoricalData(historical, indexedRecords);
-        historicalDataRef.current = mergedHistorical;
-        setHistoricalData(mergedHistorical);
-
-        if (indexedRecords.length > 0) {
-          const latestLocal = indexedRecords[indexedRecords.length - 1];
-          setSensorData({
-            temperatura: { valor: latestLocal.temperatura, timestamp: latestLocal.timestamp, calidad: latestLocal.source || 'web-serial' },
-            humedad: { valor: latestLocal.humedad, timestamp: latestLocal.timestamp, calidad: latestLocal.source || 'web-serial' },
-            humedad_suelo: { valor: latestLocal.humedad_suelo, timestamp: latestLocal.timestamp, calidad: latestLocal.source || 'web-serial' },
-            luminosidad: { valor: latestLocal.luminosidad, timestamp: latestLocal.timestamp, calidad: latestLocal.source || 'web-serial' },
-          });
-          if (latestLocal.bateria !== undefined && latestLocal.bateria !== null) {
-            setBatteryData({ bateria: latestLocal.bateria, timestamp: latestLocal.timestamp, offline: !latestLocal.synced });
-          }
-        }
+        historicalDataRef.current = historical;
+        setHistoricalData(historical);
       }
 
       if (failedOnlineResults.length === 0) {
