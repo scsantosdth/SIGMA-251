@@ -1,9 +1,9 @@
-const CACHE_NAME = 'sigma-pwa-v1';
+const CACHE_NAME = 'sigma-pwa-v2';
 const APP_SHELL = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
-  '/pwa-icon.svg',
+  '/pwa-icon.png',
   '/logo.png'
 ];
 

@@ -109,7 +109,7 @@ function Dashboard() {
         </div>
 
         <div className="dashboard-sidebar">
-          <StatusSidebar batteryData={batteryValue} serial={serial} />
+          <StatusSidebar batteryData={batteryValue} />
         </div>
       </div>
     </MainLayout>
