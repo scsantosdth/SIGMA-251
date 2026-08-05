@@ -11,6 +11,32 @@ import {
 import { useXBeeSerial } from './useXBeeSerial.jsx';
 
 const SensorDataContext = createContext(null);
+const LAST_CLOUD_SAMPLE_KEY = 'sigma_last_cloud_sample_at';
+const CLOUD_INTERVAL_KEY = 'sigma_cloud_interval_minutes';
+
+const getLastCloudSampleAt = () => {
+  try {
+    return Number(window.localStorage.getItem(LAST_CLOUD_SAMPLE_KEY)) || 0;
+  } catch {
+    return 0;
+  }
+};
+
+const setLastCloudSampleAt = (timestamp) => {
+  try {
+    window.localStorage.setItem(LAST_CLOUD_SAMPLE_KEY, String(timestamp));
+  } catch {
+    // Si el almacenamiento no esta disponible, el flujo sigue funcionando en memoria.
+  }
+};
+
+const getCloudIntervalMinutes = () => {
+  try {
+    return Number(window.localStorage.getItem(CLOUD_INTERVAL_KEY)) || 5;
+  } catch {
+    return 5;
+  }
+};
 
 function useSensorData() {
   const [sensorData, setSensorData] = useState(null);
@@ -25,8 +51,8 @@ function useSensorData() {
   const batteryDataRef = useRef(batteryData);
   const historicalDataRef = useRef(historicalData);
   const serialConnectedRef = useRef(false);
-  const cloudSyncIntervalRef = useRef(5 * 60 * 1000);
-  const lastCloudSyncScheduledRef = useRef(0);
+  const cloudSyncIntervalRef = useRef(getCloudIntervalMinutes() * 60 * 1000);
+  const lastCloudSyncScheduledRef = useRef(getLastCloudSampleAt());
 
   useEffect(() => {
     sensorDataRef.current = sensorData;
@@ -35,16 +61,20 @@ function useSensorData() {
   }, [sensorData, batteryData, historicalData]);
 
   useEffect(() => {
-    const setCloudInterval = (minutes) => {
+    const setCloudInterval = (minutes, resetSchedule = false) => {
       const parsed = Number(minutes);
       if (Number.isFinite(parsed) && parsed > 0) {
         cloudSyncIntervalRef.current = parsed * 60 * 1000;
-        lastCloudSyncScheduledRef.current = 0;
+        try { window.localStorage.setItem(CLOUD_INTERVAL_KEY, String(parsed)); } catch {}
+        if (resetSchedule) {
+          lastCloudSyncScheduledRef.current = 0;
+          setLastCloudSampleAt(0);
+        }
       }
     };
 
     api.getAutoInterval().then((data) => setCloudInterval(data?.valor)).catch(() => {});
-    const handleIntervalChange = (event) => setCloudInterval(event.detail);
+    const handleIntervalChange = (event) => setCloudInterval(event.detail, true);
     window.addEventListener('sigma-auto-interval-updated', handleIntervalChange);
     return () => window.removeEventListener('sigma-auto-interval-updated', handleIntervalChange);
   }, []);
@@ -151,7 +181,10 @@ function useSensorData() {
     const timestamp = new Date().toISOString();
     const now = Date.now();
     const shouldSyncToCloud = now - lastCloudSyncScheduledRef.current >= cloudSyncIntervalRef.current;
-    if (shouldSyncToCloud) lastCloudSyncScheduledRef.current = now;
+    if (shouldSyncToCloud) {
+      lastCloudSyncScheduledRef.current = now;
+      setLastCloudSampleAt(now);
+    }
 
     const record = {
       ...measurement,
@@ -212,7 +245,7 @@ function useSensorData() {
   const loadIndexedDBFallback = useCallback(async () => {
     try {
       const indexedData = (await getMedicionesOffline())
-        .filter((record) => record.cloudSync !== false);
+        .filter((record) => record.cloudSync === true);
       return applyOfflineData(indexedData, historicalDataRef.current);
     } catch {
       return false;
@@ -292,8 +325,17 @@ function useSensorData() {
 
       if (historicalResult.status === 'fulfilled') {
         const historical = unwrapApiData(historicalResult.value) || [];
-        historicalDataRef.current = historical;
-        setHistoricalData(historical);
+        // Se recuperan solo las muestras programadas tomadas sin internet.
+        // Las intermedias nunca entran aqui, por lo que la grafica conserva
+        // exactamente el intervalo configurado.
+        const cutoff = Date.now() - hours * 60 * 60 * 1000;
+        const localScheduled = (await getMedicionesOffline()).filter((record) => {
+          const timestamp = new Date(record.timestamp || 0).getTime();
+          return record.cloudSync === true && Number.isFinite(timestamp) && timestamp >= cutoff;
+        });
+        const mergedHistorical = mergeHistoricalData(historical, localScheduled);
+        historicalDataRef.current = mergedHistorical;
+        setHistoricalData(mergedHistorical);
       }
 
       if (failedOnlineResults.length === 0) {
