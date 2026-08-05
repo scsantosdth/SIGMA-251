@@ -2,7 +2,7 @@ import MainLayout from '../Layout/MainLayout.jsx';
 import MetricCard from './MetricCard.jsx';
 import StatusSidebar from '../Layout/StatusSidebar.jsx';
 import RealTimeChart from './RealTimeChart.jsx';
-import useSensorData from '../../hooks/useSensorData.jsx';
+import { useSensorDataContext } from '../../hooks/useSensorData.jsx';
 import { api } from '../../services/api.jsx';
 import '../../styles/index.css';
 
@@ -17,7 +17,7 @@ function Dashboard() {
     offline,
     serial,
     changeTimeRange
-  } = useSensorData();
+  } = useSensorDataContext();
 
   const handleLogout = () => {
     api.logout();

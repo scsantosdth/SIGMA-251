@@ -18,6 +18,7 @@ export function useXBeeSerial(onMeasurement) {
   const keepReadingRef = useRef(false);
   const decoderRef = useRef(new TextDecoder());
   const bufferRef = useRef('');
+  const partialLineTimerRef = useRef(null);
 
   useEffect(() => {
     onMeasurementRef.current = onMeasurement;
@@ -37,6 +38,18 @@ export function useXBeeSerial(onMeasurement) {
       onMeasurementRef.current?.(parsed, line);
     }
   }, []);
+
+  const processBufferedPayload = useCallback(() => {
+    const payload = bufferRef.current.trim();
+    if (!payload || !parseXBeeLine(payload)) return;
+    bufferRef.current = '';
+    processLine(payload);
+  }, [processLine]);
+
+  const schedulePartialPayload = useCallback(() => {
+    clearTimeout(partialLineTimerRef.current);
+    partialLineTimerRef.current = setTimeout(processBufferedPayload, 120);
+  }, [processBufferedPayload]);
 
   const readLoop = useCallback(async (port) => {
     keepReadingRef.current = true;
@@ -59,6 +72,8 @@ export function useXBeeSerial(onMeasurement) {
             bufferRef.current = lines.pop() || '';
 
             lines.map((line) => line.trim()).filter(Boolean).forEach(processLine);
+            // El firmware transmite T,H,L,W sin salto de linea.
+            schedulePartialPayload();
           }
         } finally {
           reader.releaseLock();
@@ -77,10 +92,11 @@ export function useXBeeSerial(onMeasurement) {
         }));
       }
     }
-  }, [processLine]);
+  }, [processLine, schedulePartialPayload]);
 
   const disconnect = useCallback(async () => {
     keepReadingRef.current = false;
+    clearTimeout(partialLineTimerRef.current);
 
     try {
       await readerRef.current?.cancel();
@@ -105,6 +121,21 @@ export function useXBeeSerial(onMeasurement) {
     }));
   }, []);
 
+  const openPort = useCallback(async (port) => {
+    if (!port.readable) {
+      await port.open({ baudRate: WEB_SERIAL_BAUD_RATE });
+    }
+
+    portRef.current = port;
+    setSerialState((current) => ({
+      ...current,
+      connected: true,
+      connecting: false,
+      error: null,
+    }));
+    readLoop(port);
+  }, [readLoop]);
+
   const connect = useCallback(async () => {
     if (!isWebSerialSupported()) {
       setSerialState((current) => ({
@@ -124,17 +155,7 @@ export function useXBeeSerial(onMeasurement) {
 
     try {
       const port = await navigator.serial.requestPort();
-      await port.open({ baudRate: WEB_SERIAL_BAUD_RATE });
-
-      portRef.current = port;
-      setSerialState((current) => ({
-        ...current,
-        connected: true,
-        connecting: false,
-        error: null,
-      }));
-
-      readLoop(port);
+      await openPort(port);
     } catch (error) {
       await disconnect();
       setSerialState((current) => ({
@@ -144,7 +165,31 @@ export function useXBeeSerial(onMeasurement) {
         error: error?.message || 'No se pudo conectar el XBee',
       }));
     }
-  }, [disconnect, readLoop]);
+  }, [disconnect, openPort]);
+
+  // Tras una recarga, Chrome/Edge permite reabrir los puertos ya autorizados
+  // sin mostrar de nuevo el selector de COM8.
+  useEffect(() => {
+    if (!isWebSerialSupported()) return undefined;
+    let cancelled = false;
+
+    navigator.serial.getPorts().then(async (ports) => {
+      if (cancelled || ports.length === 0 || portRef.current) return;
+      try {
+        await openPort(ports[0]);
+      } catch (error) {
+        if (!cancelled) {
+          setSerialState((current) => ({
+            ...current,
+            connecting: false,
+            error: error?.message || 'No se pudo reconectar el XBee',
+          }));
+        }
+      }
+    });
+
+    return () => { cancelled = true; };
+  }, [openPort]);
 
   useEffect(() => {
     return () => {

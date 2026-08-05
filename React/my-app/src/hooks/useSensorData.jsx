@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '../services/api.jsx';
 import {
   saveMedicionOffline,
@@ -9,6 +9,8 @@ import {
   onConnectivityChange
 } from '../services/offlineService';
 import { useXBeeSerial } from './useXBeeSerial.jsx';
+
+const SensorDataContext = createContext(null);
 
 function useSensorData() {
   const [sensorData, setSensorData] = useState(null);
@@ -189,31 +191,6 @@ function useSensorData() {
     }
 
     try {
-      const [latestResult, historyResult] = await Promise.allSettled([
-        api.getLocalLatestMeasurements(),
-        api.getLocalHistoricalData(hours)
-      ]);
-
-      if (historyResult.status === 'fulfilled') {
-        const history = unwrapApiData(historyResult.value) || [];
-        if (applyOfflineData(history, historicalDataRef.current)) {
-          return;
-        }
-      }
-
-      if (latestResult.status === 'fulfilled') {
-        const latest = unwrapApiData(latestResult.value) || {};
-        if (Object.keys(latest).length > 0) {
-          applyOfflineData([latest], historicalDataRef.current);
-          return;
-        }
-      }
-
-      const indexedLoaded = await loadIndexedDBFallback();
-      if (!indexedLoaded) {
-        setError('Conecta el XBee para recibir datos locales');
-      }
-    } catch {
       const indexedLoaded = await loadIndexedDBFallback();
       if (!indexedLoaded) {
         setError('Conecta el XBee para recibir datos locales');
@@ -243,37 +220,21 @@ function useSensorData() {
       const results = await Promise.allSettled([
         api.getLatestMeasurements(),
         api.getBatteryStatus(),
-        api.getHistoricalData(hours),
-        api.getLocalLatestMeasurements(),
-        api.getLocalHistoricalData(hours)
+        api.getHistoricalData(hours)
       ]);
 
       const [
         measurementsResult,
         batteryResult,
-        historicalResult,
-        localLatestResult,
-        localHistoricalResult
+        historicalResult
       ] = results;
       const onlineResults = [measurementsResult, batteryResult, historicalResult];
       const failedOnlineResults = onlineResults.filter((result) => result.status === 'rejected');
       const allOnlineFailed = failedOnlineResults.length === onlineResults.length;
-      const localHistorical = localHistoricalResult.status === 'fulfilled'
-        ? unwrapApiData(localHistoricalResult.value) || []
-        : [];
-      const localLatest = localLatestResult.status === 'fulfilled'
-        ? unwrapApiData(localLatestResult.value) || {}
-        : {};
-      const hasLocalHistorical = Array.isArray(localHistorical) && localHistorical.length > 0;
-      const hasLocalLatest = localLatest && Object.keys(localLatest).length > 0;
-      let loadedLocalData = false;
-
       if (allOnlineFailed) {
         setOffline(true);
-        if (!hasLocalHistorical && !hasLocalLatest) {
-          await loadLocalData(hours);
-          return;
-        }
+        await loadLocalData(hours);
+        return;
       } else if (offline) {
         setOffline(false);
       }
@@ -287,10 +248,6 @@ function useSensorData() {
         } else {
           cacheOnlineMeasurement(data, null);
         }
-      } else if (hasLocalHistorical) {
-        loadedLocalData = applyOfflineData(localHistorical, historicalDataRef.current);
-      } else if (hasLocalLatest) {
-        loadedLocalData = applyOfflineData([localLatest], historicalDataRef.current);
       }
 
       if (batteryResult.status === 'fulfilled') {
@@ -300,15 +257,11 @@ function useSensorData() {
 
       if (historicalResult.status === 'fulfilled') {
         const historical = unwrapApiData(historicalResult.value) || [];
-        const mergedHistorical = mergeHistoricalData(historical, localHistorical);
-        historicalDataRef.current = mergedHistorical;
-        setHistoricalData(mergedHistorical);
-      } else if (hasLocalHistorical) {
-        historicalDataRef.current = mergeHistoricalData(historicalDataRef.current, localHistorical);
-        setHistoricalData(historicalDataRef.current);
+        historicalDataRef.current = historical;
+        setHistoricalData(historical);
       }
 
-      if (failedOnlineResults.length === 0 || loadedLocalData) {
+      if (failedOnlineResults.length === 0) {
         setError(null);
       } else if (!sensorDataRef.current) {
         const firstError = failedOnlineResults[0].reason;
@@ -392,3 +345,14 @@ function useSensorData() {
 }
 
 export default useSensorData;
+
+export function SensorDataProvider({ children }) {
+  const sensorData = useSensorData();
+  return <SensorDataContext.Provider value={sensorData}>{children}</SensorDataContext.Provider>;
+}
+
+export function useSensorDataContext() {
+  const sensorData = useContext(SensorDataContext);
+  if (!sensorData) throw new Error('useSensorDataContext debe usarse dentro de SensorDataProvider');
+  return sensorData;
+}

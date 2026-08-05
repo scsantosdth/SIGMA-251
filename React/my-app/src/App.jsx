@@ -1,10 +1,11 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Login from './components/Auth/Login.jsx';
 import Register from './components/Auth/Register.jsx'; // NUEVO
 import Dashboard from './components/Dashboard/Dashboard.jsx';
 import UserManagement from './components/Admin/UserManagement.jsx';
 import Settings from './components/Settings/Settings.jsx';
 import { api } from './services/api.jsx';
+import { SensorDataProvider } from './hooks/useSensorData.jsx';
 import './styles/index.css';
 
 // Componente para rutas protegidas
@@ -24,6 +25,12 @@ const AdminRoute = ({ children }) => {
 const PublicRoute = ({ children }) => {
   return !api.isAuthenticated() ? children : <Navigate to="/" />;
 };
+
+const AuthenticatedApp = () => (
+  api.isAuthenticated()
+    ? <SensorDataProvider><Outlet /></SensorDataProvider>
+    : <Navigate to="/login" />
+);
 
 function App() {
   return (
@@ -50,34 +57,15 @@ function App() {
         />
         
         {/* Ruta protegida: Dashboard */}
-        <Route 
-          path="/" 
-          element={
-            <PrivateRoute>
-              <Dashboard />
-            </PrivateRoute>
-          } 
-        />
+        <Route element={<AuthenticatedApp />}>
+          <Route path="/" element={<Dashboard />} />
         
         {/* Ruta protegida solo para admin: Administración de Usuarios */}
-        <Route 
-          path="/admin/users" 
-          element={
-            <AdminRoute>
-              <UserManagement />
-            </AdminRoute>
-          } 
-        />
+          <Route path="/admin/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
 
         // Y añade esta ruta dentro del Router:
-        <Route 
-          path="/settings" 
-          element={
-            <PrivateRoute>
-              <Settings />
-            </PrivateRoute>
-          } 
-        />
+          <Route path="/settings" element={<Settings />} />
+        </Route>
         
         {/* Redirección por defecto */}
         <Route path="*" element={<Navigate to="/" />} />
