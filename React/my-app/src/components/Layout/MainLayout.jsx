@@ -4,9 +4,12 @@ import NavigationSidebar from './NavigationSidebar.jsx';
 import { applyTheme, getTheme } from '../../utils/theme.jsx';
 import '../../styles/index.css';
 import { api } from '../../services/api.jsx';
+import { useSensorDataContext } from '../../hooks/useSensorData.jsx';
 
 function MainLayout({ children, onLogout, batteryData }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { batteryData: sharedBatteryData } = useSensorDataContext();
+  const visibleBatteryData = batteryData ?? sharedBatteryData;
 
   useEffect(() => {
     applyTheme(getTheme());
@@ -42,7 +45,7 @@ function MainLayout({ children, onLogout, batteryData }) {
         <Header
           onToggleSidebar={toggleSidebar}
           onManualMeasure={handleManualMeasure}
-          batteryData={batteryData}
+          batteryData={visibleBatteryData}
         />
 
         <main className="main-content">

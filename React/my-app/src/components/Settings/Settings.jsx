@@ -45,6 +45,7 @@ function Settings() {
     setIntervalLoading(true);
     try {
       await api.setAutoInterval(autoInterval);
+      window.dispatchEvent(new CustomEvent('sigma-auto-interval-updated', { detail: autoInterval }));
       showMessage('success', `Intervalo automático actualizado a ${autoInterval} minutos`);
     } catch (err) {
       showMessage('error', 'Error al guardar el intervalo');

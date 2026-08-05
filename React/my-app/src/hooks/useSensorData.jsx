@@ -25,12 +25,29 @@ function useSensorData() {
   const batteryDataRef = useRef(batteryData);
   const historicalDataRef = useRef(historicalData);
   const serialConnectedRef = useRef(false);
+  const cloudSyncIntervalRef = useRef(5 * 60 * 1000);
+  const lastCloudSyncScheduledRef = useRef(0);
 
   useEffect(() => {
     sensorDataRef.current = sensorData;
     batteryDataRef.current = batteryData;
     historicalDataRef.current = historicalData;
   }, [sensorData, batteryData, historicalData]);
+
+  useEffect(() => {
+    const setCloudInterval = (minutes) => {
+      const parsed = Number(minutes);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        cloudSyncIntervalRef.current = parsed * 60 * 1000;
+        lastCloudSyncScheduledRef.current = 0;
+      }
+    };
+
+    api.getAutoInterval().then((data) => setCloudInterval(data?.valor)).catch(() => {});
+    const handleIntervalChange = (event) => setCloudInterval(event.detail);
+    window.addEventListener('sigma-auto-interval-updated', handleIntervalChange);
+    return () => window.removeEventListener('sigma-auto-interval-updated', handleIntervalChange);
+  }, []);
 
   const unwrapApiData = (payload) => {
     if (!payload) return null;
@@ -132,25 +149,26 @@ function useSensorData() {
 
   const handleSerialMeasurement = useCallback(async (measurement) => {
     const timestamp = new Date().toISOString();
+    const now = Date.now();
+    const shouldSyncToCloud = now - lastCloudSyncScheduledRef.current >= cloudSyncIntervalRef.current;
+    if (shouldSyncToCloud) lastCloudSyncScheduledRef.current = now;
+
     const record = {
       ...measurement,
       timestamp,
       id: Date.now(),
       source: 'web-serial',
-      synced: false,
+      // Todas las lecturas quedan en IndexedDB; solo las del intervalo elegido
+      // entran en la cola de Supabase.
+      synced: !shouldSyncToCloud,
+      cloudSync: shouldSyncToCloud,
     };
 
     applyOfflineData([record], historicalDataRef.current);
 
-    const savedRecord = await saveMedicionOffline(record, { synced: false });
-    if (!savedRecord) return;
-
-    const synced = await syncSingleSerialMeasurement(savedRecord);
-    if (synced) {
-      syncOfflineMediciones(api).catch((syncError) => {
-        console.warn('Error sincronizando pendientes:', syncError);
-      });
-    }
+    const savedRecord = await saveMedicionOffline(record, { synced: !shouldSyncToCloud });
+    if (!savedRecord || !shouldSyncToCloud) return;
+    await syncSingleSerialMeasurement(savedRecord);
   }, [applyOfflineData, syncSingleSerialMeasurement]);
 
   const serial = useXBeeSerial(handleSerialMeasurement);
@@ -257,8 +275,29 @@ function useSensorData() {
 
       if (historicalResult.status === 'fulfilled') {
         const historical = unwrapApiData(historicalResult.value) || [];
-        historicalDataRef.current = historical;
-        setHistoricalData(historical);
+        // Supabase contiene solo las muestras programadas. Combinamos esas con
+        // IndexedDB para no perder en una recarga las lecturas en tiempo real.
+        const cutoff = Date.now() - hours * 60 * 60 * 1000;
+        const indexedRecords = (await getMedicionesOffline()).filter((record) => {
+          const time = new Date(record.timestamp || 0).getTime();
+          return Number.isFinite(time) && time >= cutoff;
+        });
+        const mergedHistorical = mergeHistoricalData(historical, indexedRecords);
+        historicalDataRef.current = mergedHistorical;
+        setHistoricalData(mergedHistorical);
+
+        if (indexedRecords.length > 0) {
+          const latestLocal = indexedRecords[indexedRecords.length - 1];
+          setSensorData({
+            temperatura: { valor: latestLocal.temperatura, timestamp: latestLocal.timestamp, calidad: latestLocal.source || 'web-serial' },
+            humedad: { valor: latestLocal.humedad, timestamp: latestLocal.timestamp, calidad: latestLocal.source || 'web-serial' },
+            humedad_suelo: { valor: latestLocal.humedad_suelo, timestamp: latestLocal.timestamp, calidad: latestLocal.source || 'web-serial' },
+            luminosidad: { valor: latestLocal.luminosidad, timestamp: latestLocal.timestamp, calidad: latestLocal.source || 'web-serial' },
+          });
+          if (latestLocal.bateria !== undefined && latestLocal.bateria !== null) {
+            setBatteryData({ bateria: latestLocal.bateria, timestamp: latestLocal.timestamp, offline: !latestLocal.synced });
+          }
+        }
       }
 
       if (failedOnlineResults.length === 0) {

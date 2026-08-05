@@ -56,7 +56,7 @@ export const getMedicionesOffline = async (options = {}) => {
   try {
     const mediciones = await localForage.getItem('mediciones') || [];
     if (options.pendingOnly) {
-      return mediciones.filter((medicion) => !medicion.synced);
+      return mediciones.filter((medicion) => !medicion.synced && medicion.cloudSync !== false);
     }
     return mediciones;
   } catch (error) {

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { WEB_SERIAL_BAUD_RATE, isWebSerialSupported, parseXBeeLine } from '../services/serialService.jsx';
 
+const wait = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+
 const initialState = {
   supported: isWebSerialSupported(),
   connected: false,
@@ -175,16 +177,27 @@ export function useXBeeSerial(onMeasurement) {
 
     navigator.serial.getPorts().then(async (ports) => {
       if (cancelled || ports.length === 0 || portRef.current) return;
-      try {
-        await openPort(ports[0]);
-      } catch (error) {
-        if (!cancelled) {
-          setSerialState((current) => ({
-            ...current,
-            connecting: false,
-            error: error?.message || 'No se pudo reconectar el XBee',
-          }));
+      setSerialState((current) => ({ ...current, connecting: true, error: null }));
+
+      let lastError;
+      // Durante una recarga el documento anterior puede tardar unos instantes
+      // en liberar COM8. Reintentamos antes de declarar fallida la reconexion.
+      for (let attempt = 0; attempt < 6 && !cancelled; attempt += 1) {
+        try {
+          await openPort(ports[0]);
+          return;
+        } catch (error) {
+          lastError = error;
+          await wait(500);
         }
+      }
+
+      if (!cancelled) {
+        setSerialState((current) => ({
+          ...current,
+          connecting: false,
+          error: lastError?.message || 'No se pudo reconectar el XBee',
+        }));
       }
     });
 
