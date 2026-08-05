@@ -51,13 +51,6 @@ function Dashboard() {
           <div className="dashboard-header">
             <h2>Panel de Monitoreo en Tiempo Real</h2>
             <div className="dashboard-actions">
-              <div
-                className={`xbee-status ${serial.connected ? 'connected' : 'idle'}`}
-                title={serial.lastLine || serial.error || 'Estado del enlace XBee'}
-              >
-                <span className="xbee-status-dot"></span>
-                <span>{serial.connected ? 'XBee conectado' : 'XBee sin conectar'}</span>
-              </div>
               <button
                 className={`xbee-connect-button ${serial.connected ? 'connected' : ''}`}
                 onClick={handleSerialClick}

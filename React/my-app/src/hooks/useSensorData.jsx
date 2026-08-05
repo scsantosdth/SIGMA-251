@@ -333,7 +333,18 @@ function useSensorData() {
           const timestamp = new Date(record.timestamp || 0).getTime();
           return record.cloudSync === true && Number.isFinite(timestamp) && timestamp >= cutoff;
         });
-        const mergedHistorical = mergeHistoricalData(historical, localScheduled);
+        // La misma muestra puede existir ya en Supabase y en IndexedDB tras una
+        // reconexion. El backend la expone por sensor y el cache como snapshot,
+        // por eso se elimina el snapshot local si ambos pertenecen al minuto.
+        const remoteMinutes = new Set(historical.map((record) => {
+          const time = new Date(record.timestamp || 0).getTime();
+          return Number.isFinite(time) ? Math.floor(time / 60000) : null;
+        }));
+        const localOnly = localScheduled.filter((record) => {
+          const time = new Date(record.timestamp || 0).getTime();
+          return !Number.isFinite(time) || !remoteMinutes.has(Math.floor(time / 60000));
+        });
+        const mergedHistorical = mergeHistoricalData(historical, localOnly);
         historicalDataRef.current = mergedHistorical;
         setHistoricalData(mergedHistorical);
       }

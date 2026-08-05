@@ -8,7 +8,7 @@ import { useSensorDataContext } from '../../hooks/useSensorData.jsx';
 
 function MainLayout({ children, onLogout, batteryData }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { batteryData: sharedBatteryData } = useSensorDataContext();
+  const { batteryData: sharedBatteryData, serial } = useSensorDataContext();
   const visibleBatteryData = batteryData ?? sharedBatteryData;
 
   useEffect(() => {
@@ -46,6 +46,7 @@ function MainLayout({ children, onLogout, batteryData }) {
           onToggleSidebar={toggleSidebar}
           onManualMeasure={handleManualMeasure}
           batteryData={visibleBatteryData}
+          serial={serial}
         />
 
         <main className="main-content">

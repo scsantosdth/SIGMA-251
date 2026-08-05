@@ -4,7 +4,7 @@ import '../../styles/index.css';
 import OfflineStorageIndicator from '../Dashboard/OfflineStorageIndicator.jsx';
 import BatteryIcon from '../Dashboard/BatteryIcon.jsx'; // ← nuevo
 
-function Header({ onToggleSidebar, onManualMeasure, batteryData }) {
+function Header({ onToggleSidebar, onManualMeasure, batteryData, serial }) {
   const [isOnline, setIsOnline] = useState(true);
   const batteryPercentage = batteryData?.bateria ?? 0; // valor seguro
 
@@ -80,6 +80,14 @@ function Header({ onToggleSidebar, onManualMeasure, batteryData }) {
         <div className={`system-status ${isOnline ? 'online' : 'offline'}`} aria-live="polite" title="Estado de conexión">
           <span className={`status-indicator ${isOnline ? 'online' : 'offline'}`}></span>
           <span>{isOnline ? 'Online' : 'Offline'}</span>
+        </div>
+        <div
+          className={`system-status ${serial?.connected ? 'online' : 'offline'}`}
+          aria-live="polite"
+          title={serial?.lastLine || serial?.error || 'Estado del enlace XBee'}
+        >
+          <span className={`status-indicator ${serial?.connected ? 'online' : 'offline'}`}></span>
+          <span>{serial?.connected ? 'XBee conectado' : 'XBee sin conectar'}</span>
         </div>
       </div>
 
