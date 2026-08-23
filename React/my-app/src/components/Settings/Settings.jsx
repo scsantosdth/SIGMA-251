@@ -15,7 +15,6 @@ function Settings() {
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showChangeEmail, setShowChangeEmail] = useState(false);
   const [theme, setThemeState] = useState(getTheme());
-  const [localApiBase, setLocalApiBaseState] = useState(api.getLocalApiBase());
   const [systemStatus, setSystemStatus] = useState({
     api: 'checking',
     db: 'checking',
@@ -27,7 +26,6 @@ function Settings() {
   // Nuevos estados para el intervalo automático
   const [autoInterval, setAutoInterval] = useState(5);
   const [intervalLoading, setIntervalLoading] = useState(false);
-  const [localApiSaving, setLocalApiSaving] = useState(false);
 
   // Logout
   const handleLogout = () => {
@@ -55,25 +53,6 @@ function Settings() {
     }
   };
 
-  const handleSaveLocalApiBase = async () => {
-    setLocalApiSaving(true);
-    try {
-      const normalized = api.setLocalApiBase(localApiBase);
-      setLocalApiBaseState(normalized);
-      showMessage('success', `API local configurada: ${normalized}`);
-    } catch (err) {
-      showMessage('error', 'Error guardando la API local');
-      console.error(err);
-    } finally {
-      setLocalApiSaving(false);
-    }
-  };
-
-  const handleClearLocalApiBase = () => {
-    const restored = api.clearLocalApiBase();
-    setLocalApiBaseState(restored);
-    showMessage('success', 'API local restaurada al valor por defecto');
-  };
 
   const handlePasswordChangeSuccess = (successMessage) => {
     showMessage('success', successMessage);
@@ -368,38 +347,6 @@ function Settings() {
                   
                   <div className="preference-item">
                     <label className="preference-label">
-                      <span>URL API local del receiver</span>
-                      <input
-                        type="text"
-                        value={localApiBase}
-                        onChange={(e) => setLocalApiBaseState(e.target.value)}
-                        placeholder="http://127.0.0.1:5050 o http://192.168.x.x:5050"
-                        style={{ width: '320px', marginLeft: '10px' }}
-                      />
-                    </label>
-                    <div className="preference-help">
-                      PC: usa <strong>http://127.0.0.1:5050</strong>. Celular: usa la IP local del PC, por ejemplo <strong>http://192.168.1.50:5050</strong>.
-                    </div>
-                    <div style={{ display: 'flex', gap: '10px', marginTop: '10px', flexWrap: 'wrap' }}>
-                      <button
-                        className="btn btn-primary"
-                        onClick={handleSaveLocalApiBase}
-                        disabled={localApiSaving}
-                      >
-                        {localApiSaving ? 'Guardando...' : 'Guardar API local'}
-                      </button>
-                      <button
-                        className="btn btn-secondary"
-                        onClick={handleClearLocalApiBase}
-                        disabled={localApiSaving}
-                      >
-                        Restaurar por defecto
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="preference-item">
-                    <label className="preference-label">
                       <span>Idioma</span>
                       <select defaultValue="es">
                         <option value="es">Español</option>
@@ -500,4 +447,3 @@ function Settings() {
 }
 
 export default Settings;
-

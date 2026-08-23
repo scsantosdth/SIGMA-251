@@ -1,38 +1,72 @@
 my-app/
 ├── src/
 │   ├── components/
-│   │   ├── Dashboard/
-│   │   │   ├── Dashboard.jsx
-│   │   │   ├── MetricCard.jsx
-│   │   │   ├── StorageLevel.jsx
-│   │   │   └── RealTimeChart.jsx
+│   │   ├── Admin/
+│   │   │   ├── UserDeleteModal.jsx
+│   │   │   ├── UserForm.jsx
+│   │   │   ├── UserList.jsx
+│   │   │   └── UserManagement.jsx
 │   │   ├── Auth/
 │   │   │   ├── Login.jsx
 │   │   │   └── Register.jsx
+│   │   ├── Dashboard/
+│   │   │   ├── BatteryIcon.jsx
+│   │   │   ├── Dashboard.jsx
+│   │   │   ├── MetricCard.jsx
+│   │   │   ├── OfflineStorageIndicator.jsx
+│   │   │   ├── RealTimeChart.jsx
+│   │   │   └── StorageLevel.jsx
 │   │   ├── Layout/
+│   │   │   ├── Header.jsx
 │   │   │   ├── MainLayout.jsx
-│   │   │   └── Header.jsx
+│   │   │   ├── NavigationSidebar.jsx
+│   │   │   └── StatusSidebar.jsx
 │   │   └── Settings/
-│   │       ├── Settings.jsx
+│   │       ├── ChangeEmailModal.jsx
 │   │       ├── ChangePasswordModal.jsx
-│   │       └── ChangeEmailModal.jsx
+│   │       └── Settings.jsx
 │   ├── hooks/
+│   │   ├── 
+│   │   ├── useLocalSensorData.jsx
+│   │   ├── useOfflineStorageStatus.jsx
 │   │   ├── useSensorData.jsx
-│   │   ├── useWebSocket.jsx
-│   │   ├── useBatteryStatus.jsx
-│   │  
+│   │   ├── useXBeeSerial.jsx
+│   │   └── 
 │   ├── services/
-│   │   └── api.jsx
+│   │   ├── api.jsx
+│   │   ├── offlineService.jsx
+│   │   └── serialService.jsx
 │   ├── styles/
-│   │   ├── globals.css
 │   │   ├── Admin.css
-│   │   ├── index.css
-│   │   ├── Layout.css
 │   │   ├── Auth.css
 │   │   ├── Dashboard.css
+│   │   ├── globals.css
+│   │   ├── index.css
+│   │   ├── Layout.css
 │   │   └── Settings.css
-│   └── App.jsx
-└── package.json
+│   ├── utils/
+│   │   ├── 
+│   │   └── theme.jsx
+│   ├── App.jsx
+│   └── main.jsx
+
+
+Resumida
+
+src/
+├── components/
+│   ├── Auth/
+│   ├── Admin/
+│   ├── Dashboard/
+│   ├── Layout/
+│   └── Settings/
+├── hooks/
+├── services/
+├── styles/
+├── utils/
+├── App.jsx
+└── main.jsx
+
 
 
 
