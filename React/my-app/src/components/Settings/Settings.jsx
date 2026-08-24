@@ -334,16 +334,7 @@ function Settings() {
                       {intervalLoading ? 'Guardando...' : 'Guardar intervalo'}
                     </button>
                   </div>
-                  
-                  <div className="preference-item">
-                    <label className="preference-label">
-                      <span>Unidades de temperatura</span>
-                      <select defaultValue="celsius">
-                        <option value="celsius">°C (Celsius)</option>
-                        <option value="fahrenheit">°F (Fahrenheit)</option>
-                      </select>
-                    </label>
-                  </div>
+
                   
                   <div className="preference-item">
                     <label className="preference-label">
@@ -407,20 +398,6 @@ function Settings() {
                     onClick={refreshSystemStatus}
                   >
                     Verificar estado
-                  </button>
-                  <button 
-                    className="btn btn-secondary" 
-                    disabled={loading}
-                    onClick={() => showMessage('info', 'Funcionalidad en desarrollo')}
-                  >
-                    Exportar Configuración
-                  </button>
-                  <button 
-                    className="btn btn-warning" 
-                    disabled={loading}
-                    onClick={() => showMessage('warning', 'Esta acción reiniciará todas tus preferencias')}
-                  >
-                    Reiniciar Preferencias
                   </button>
                 </div>
               </div>
