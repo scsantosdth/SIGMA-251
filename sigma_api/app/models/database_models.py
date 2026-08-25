@@ -14,6 +14,16 @@ class Usuario(Base):
     fecha_creacion = Column(DateTime, default=func.now())
     ultimo_login = Column(DateTime)
 
+
+class SesionUsuario(Base):
+    """Sesiones JWT emitidas para poder revocarlas por dispositivo."""
+    __tablename__ = "sesiones_usuario"
+    id = Column(Integer, primary_key=True, index=True)
+    usuario_id = Column(Integer, ForeignKey('usuarios.id'), nullable=False, index=True)
+    jti = Column(String(64), unique=True, nullable=False, index=True)
+    creada_en = Column(DateTime, default=func.now(), nullable=False)
+    revocada_en = Column(DateTime, nullable=True)
+
 class Dispositivo(Base):
     __tablename__ = "dispositivos"
     id = Column(Integer, primary_key=True, index=True)

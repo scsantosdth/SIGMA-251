@@ -174,6 +174,11 @@ export const api = {
       body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
     }),
 
+  logoutOtherSessions: async () =>
+    fetchWithAuth(`${API_BASE}/api/auth/logout-other-sessions`, {
+      method: 'POST',
+    }),
+
   logout: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');

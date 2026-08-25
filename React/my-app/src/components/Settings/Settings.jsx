@@ -65,6 +65,21 @@ function Settings() {
     setShowChangeEmail(false);
   };
 
+  const handleLogoutOtherSessions = async () => {
+    setLoading(true);
+    try {
+      const result = await api.logoutOtherSessions();
+      const count = result.closed_sessions || 0;
+      showMessage('success', count > 0
+        ? `${count} ${count === 1 ? 'sesión fue cerrada' : 'sesiones fueron cerradas'} en otros dispositivos.`
+        : 'No hay otras sesiones activas para cerrar.');
+    } catch (err) {
+      showMessage('error', err.message || 'No fue posible cerrar las otras sesiones.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Tema oscuro
   useEffect(() => {
     applyTheme(theme);
@@ -274,9 +289,9 @@ function Settings() {
                       <button 
                         className="btn btn-warning" 
                         disabled={loading}
-                        onClick={() => showMessage('warning', 'Funcionalidad en desarrollo')}
+                        onClick={handleLogoutOtherSessions}
                       >
-                        Cerrar Otras Sesiones
+                        {loading ? 'Cerrando...' : 'Cerrar Otras Sesiones'}
                       </button>
                     </div>
                   </div>

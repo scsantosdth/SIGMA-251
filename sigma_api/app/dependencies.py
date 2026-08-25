@@ -3,7 +3,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.utils.auth_utils import verify_token
 from app.database import get_db
-from app.models.database_models import Usuario
+from app.models.database_models import Usuario, SesionUsuario
 from sqlalchemy.orm import Session
 
 security = HTTPBearer()
@@ -22,6 +22,14 @@ def get_current_user(
             detail="Token inválido o expirado",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    session_id = payload.get("jti")
+    if not session_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Sesión no válida",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     
     # Buscar usuario en base de datos
     user = db.query(Usuario).filter(Usuario.id == payload.get("user_id")).first()
@@ -30,6 +38,18 @@ def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Usuario no encontrado o inactivo",
+        )
+
+    active_session = db.query(SesionUsuario).filter(
+        SesionUsuario.usuario_id == user.id,
+        SesionUsuario.jti == session_id,
+        SesionUsuario.revocada_en.is_(None),
+    ).first()
+    if active_session is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Esta sesión fue cerrada",
+            headers={"WWW-Authenticate": "Bearer"},
         )
     
     return user

@@ -2,10 +2,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 from app.database import get_db
-from app.models.database_models import Usuario
+from app.models.database_models import Usuario, SesionUsuario
 from app.models.user_models import UserCreate, UserLogin, Token, UserResponse, UserCreateAdmin, UserUpdate, ChangePasswordRequest, UserSelfUpdate
 from app.utils.auth_utils import (
     verify_password, 
@@ -14,10 +14,21 @@ from app.utils.auth_utils import (
     verify_token
 )
 from app.config import settings
-from app.dependencies import get_current_active_admin
+from app.dependencies import get_current_active_admin, get_current_user as get_authenticated_user
 
 router = APIRouter(prefix="/api/auth", tags=["Autenticación"])
 security = HTTPBearer()
+
+
+def create_user_session(user: Usuario, db: Session) -> str:
+    """Emite un JWT y conserva su identificador para poder revocarlo."""
+    access_token = create_access_token(
+        data={"user_id": user.id, "username": user.username, "rol": user.rol}
+    )
+    token_payload = verify_token(access_token)
+    db.add(SesionUsuario(usuario_id=user.id, jti=token_payload["jti"]))
+    db.commit()
+    return access_token
 
 @router.post("/register", response_model=Token)
 def register(user_data: UserCreate, db: Session = Depends(get_db)):
@@ -53,9 +64,7 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
     
     # Crear token JWT
-    access_token = create_access_token(
-        data={"user_id": new_user.id, "username": new_user.username, "rol": new_user.rol}
-    )
+    access_token = create_user_session(new_user, db)
     
     return Token(
         access_token=access_token,
@@ -84,14 +93,10 @@ def login(login_data: UserLogin, db: Session = Depends(get_db)):
         )
     
     # Crear token JWT
-    access_token = create_access_token(
-        data={"user_id": user.id, "username": user.username, "rol": user.rol}
-    )
-    
     # Actualizar último login
-    from datetime import datetime
     user.ultimo_login = datetime.utcnow()
     db.commit()
+    access_token = create_user_session(user, db)
     
     return Token(
         access_token=access_token,
@@ -102,7 +107,8 @@ def login(login_data: UserLogin, db: Session = Depends(get_db)):
 @router.get("/me", response_model=UserResponse)
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_authenticated_user),
 ):
     """Obtener información del usuario actual"""
     token = credentials.credentials
@@ -129,7 +135,8 @@ def get_current_user(
 def update_current_user(
     user_data: UserSelfUpdate,
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_authenticated_user),
 ):
     """Actualizar datos del usuario actual (email)"""
     token = credentials.credentials
@@ -175,7 +182,8 @@ def update_current_user(
 def change_password(
     payload: ChangePasswordRequest,
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_authenticated_user),
 ):
     """Cambiar contrase?a del usuario actual"""
     # Soportar payload como dict si el parser no crea el modelo
@@ -221,6 +229,27 @@ def change_password(
     db.commit()
 
     return {"message": "Contrase?a cambiada exitosamente"}
+
+
+@router.post("/logout-other-sessions")
+def logout_other_sessions(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    current_user: Usuario = Depends(get_authenticated_user),
+    db: Session = Depends(get_db),
+):
+    """Revoca todas las sesiones del usuario salvo la que hace la solicitud."""
+    token_payload = verify_token(credentials.credentials)
+    current_session_id = token_payload.get("jti") if token_payload else None
+    if not current_session_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sesión no válida")
+
+    closed_count = db.query(SesionUsuario).filter(
+        SesionUsuario.usuario_id == current_user.id,
+        SesionUsuario.jti != current_session_id,
+        SesionUsuario.revocada_en.is_(None),
+    ).update({SesionUsuario.revocada_en: datetime.utcnow()}, synchronize_session=False)
+    db.commit()
+    return {"message": "Las otras sesiones fueron cerradas", "closed_sessions": closed_count}
 
 
 @router.get("/users", response_model=list[UserResponse])
