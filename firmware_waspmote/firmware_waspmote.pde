@@ -2,13 +2,19 @@
 #include <WaspXBee802.h>
 
 char DEST_ADDR[] = "0001";
-char payload[100]; // Buffer más grande para 4 campos
+char payload[100];
 
 void setup() {
   USB.ON();
-  USB.println(F("Inicio - SHT75 + LDR + Watermark1"));
+  USB.println(F("Inicio - SHT75 + SR11-TR + Watermark1"));
   
   SensorAgrv20.ON();
+  
+  // Apagar el LDR para que no interfiera en ANALOG7
+  SensorAgrv20.setSensorMode(SENS_OFF, SENS_AGR_LDR);
+  pinMode(DIGITAL5, OUTPUT);
+  digitalWrite(DIGITAL5, LOW);
+  
   xbee802.ON();
   delay(200);
 }
@@ -21,37 +27,47 @@ void loop() {
   float humidity    = SensorAgrv20.readValue(SENS_AGR_SENSIRION, SENSIRION_HUM);
   SensorAgrv20.setSensorMode(SENS_OFF, SENS_AGR_SENSIRION);
 
-  // --- Luminosidad (LDR) - Valor amplificado ---
-  float luminosity_raw = SensorAgrv20.readValue(SENS_AGR_LDR);
-  float luminosity_amp = luminosity_raw * 100.0;
+  // --- Radiación Solar SR11-TR (ANALOG7) ---
+  int raw = analogRead(ANALOG7);
+  float v_rad = (raw * 3.3) / 1023.0;
+  
+  // Offset calibrado a 0.030V (para que en reposo dé 0.00 W/m²)
+  float offset = 0.030;
+  float irradiance = (v_rad - offset) * 10000.0;
+  if (irradiance < 0) irradiance = 0;
 
   // --- Humedad Suelo (Watermark 1) ---
   SensorAgrv20.setSensorMode(SENS_ON, SENS_AGR_WATERMARK_1);
   delay(100);
-  
-  // Configurar multiplexor para Watermarks (DIGITAL3 = LOW)
   pinMode(DIGITAL3, OUTPUT);
   digitalWrite(DIGITAL3, LOW);
   delay(50);
-  
   float watermark_freq = SensorAgrv20.readValue(SENS_AGR_WATERMARK_1);
   SensorAgrv20.setSensorMode(SENS_OFF, SENS_AGR_WATERMARK_1);
 
-  // Mostrar por USB
+  // El API de Waspmote devuelve el nivel de bateria como porcentaje (0-100).
+  uint8_t battery_level = PWR.getBatteryLevel();
+
+  USB.println(F("---- Datos ----"));
+  USB.print(F("RAW: ")); USB.println(raw);
+  USB.print(F("V_rad (V): ")); USB.println(v_rad);
   USB.print(F("Temperatura (C): ")); USB.println(temperature);
   USB.print(F("Humedad (%RH): ")); USB.println(humidity);
-  USB.print(F("Luminosidad (AMP): ")); USB.println(luminosity_amp);
+  USB.print(F("Radiacion (W/m2): ")); USB.println(irradiance);
   USB.print(F("Watermark1 (Hz): ")); USB.println(watermark_freq);
+  USB.print(F("Bateria (%): ")); USB.println(battery_level);
+  USB.println(F("----------------"));
 
-  // Construir payload con 4 campos
-  char tempStr[16], humStr[16], lumStr[16], wmStr[16];
+  // --- Construir payload: el dashboard recibe este formato por Web Serial ---
+  char tempStr[16], humStr[16], radStr[16], wmStr[16], batteryStr[4];
   dtostrf(temperature, 6, 2, tempStr);
   dtostrf(humidity, 6, 2, humStr);
-  dtostrf(luminosity_amp, 6, 2, lumStr);
+  dtostrf(irradiance, 6, 2, radStr);
   dtostrf(watermark_freq, 6, 2, wmStr);
-  sprintf(payload, "T:%s,H:%s,L:%s,W:%s", tempStr, humStr, lumStr, wmStr);
+  itoa(battery_level, batteryStr, 10);
+  sprintf(payload, "T:%s,H:%s,R:%s,W:%s,B:%s", tempStr, humStr, radStr, wmStr, batteryStr);
 
-  // Enviar
+  // --- Enviar por XBee ---
   int error = xbee802.send(DEST_ADDR, payload);
   if (error == 0) {
     USB.print(F("Datos enviados: ")); USB.println(payload);

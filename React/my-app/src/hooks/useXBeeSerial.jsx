@@ -74,7 +74,7 @@ export function useXBeeSerial(onMeasurement) {
             bufferRef.current = lines.pop() || '';
 
             lines.map((line) => line.trim()).filter(Boolean).forEach(processLine);
-            // El firmware transmite T,H,L,W sin salto de linea.
+            // El firmware transmite T,H,R,W,B sin salto de linea.
             schedulePartialPayload();
           }
         } finally {
