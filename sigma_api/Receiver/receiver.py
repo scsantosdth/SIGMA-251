@@ -329,13 +329,13 @@ def clean_sensor_data(raw_string):
     try:
         print(f'Dato crudo recibido: {repr(raw_string)}')
 
-        pattern = r'T:\s*([\d.-]+),\s*H:\s*([\d.-]+),\s*L:\s*([\d.-]+),\s*W:\s*([\d.-]+),\s*B:\s*([\d.-]+)'
+        pattern = r'T:\s*([\d.-]+),\s*H:\s*([\d.-]+),\s*R:\s*([\d.-]+),\s*W:\s*([\d.-]+),\s*B:\s*([\d.-]+)'
         match = re.search(pattern, raw_string)
 
         if match:
             temperature = float(match.group(1))
             humidity = float(match.group(2))
-            luminosity = float(match.group(3))
+            radiacion_solar = float(match.group(3))
             watermark_hz = float(match.group(4))
             battery = float(match.group(5))
 
@@ -343,13 +343,13 @@ def clean_sensor_data(raw_string):
 
             if (-40 <= temperature <= 80 and
                 0 <= humidity <= 100 and
-                0 <= luminosity <= 20000 and
+                0 <= radiacion_solar <= 1600 and
                 0 <= watermark_hz <= 20000 and
                 0 <= battery <= 100):
                 return {
                     'temperatura': round(temperature, 2),
                     'humedad': round(humidity, 2),
-                    'luminosidad': round(luminosity, 2),
+                    'radiacion_solar': round(radiacion_solar, 2),
                     'humedad_suelo': round(humedad_suelo_porcentaje, 1),
                     'bateria': round(battery, 1)
                 }
@@ -357,24 +357,24 @@ def clean_sensor_data(raw_string):
             print('Datos fuera de rango valido')
             return None
 
-        pattern_old = r'T:\s*([\d.-]+),\s*H:\s*([\d.-]+),\s*L:\s*([\d.-]+),\s*W:\s*([\d.-]+)'
+        pattern_old = r'T:\s*([\d.-]+),\s*H:\s*([\d.-]+),\s*R:\s*([\d.-]+),\s*W:\s*([\d.-]+)'
         match_old = re.search(pattern_old, raw_string)
 
         if match_old:
             temperature = float(match_old.group(1))
             humidity = float(match_old.group(2))
-            luminosity = float(match_old.group(3))
+            radiacion_solar = float(match_old.group(3))
             watermark_hz = float(match_old.group(4))
 
             if (-40 <= temperature <= 80 and
                 0 <= humidity <= 100 and
-                0 <= luminosity <= 20000 and
+                0 <= radiacion_solar <= 1600 and
                 0 <= watermark_hz <= 20000):
                 humedad_suelo_porcentaje = convert_watermark_to_percentage(watermark_hz)
                 return {
                     'temperatura': round(temperature, 2),
                     'humedad': round(humidity, 2),
-                    'luminosidad': round(luminosity, 2),
+                    'radiacion_solar': round(radiacion_solar, 2),
                     'humedad_suelo': round(humedad_suelo_porcentaje, 1),
                     'bateria': None
                 }
@@ -396,7 +396,7 @@ def send_to_api(sensor_data):
         mediciones_data = {
             'temperatura': sensor_data['temperatura'],
             'humedad': sensor_data['humedad'],
-            'luminosidad': sensor_data['luminosidad'],
+            'radiacion_solar': sensor_data['radiacion_solar'],
             'humedad_suelo': sensor_data['humedad_suelo']
         }
 
@@ -475,7 +475,7 @@ def main():
 
         print(f'Conectado a {SERIAL_PORT} a {BAUD_RATE} baudios')
         print('Esperando datos del sensor... (Ctrl+C para detener)')
-        print('Formato esperado: T:25.50,H:60.20,L:450.00,W:51.90,B:85.50')
+        print('Formato esperado: T:25.50,H:60.20,R:450.00,W:51.90 (B:85.50 opcional)')
         print('Watermark: 50Hz=100%, 10000Hz=0% (escala inversa)')
         print('Bateria: 0-100%')
         print(f'Guardando JSON en: {JSON_FILE}')

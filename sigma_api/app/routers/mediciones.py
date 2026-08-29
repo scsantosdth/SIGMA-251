@@ -8,11 +8,11 @@ from app.models.database_models import Medicion, Sensor, Dispositivo, Configurac
 
 router = APIRouter(prefix="/api/mediciones", tags=["mediciones"])
 
-# Mapeo de nombres de sensores a sensor_id (basado en tu INSERT inicial)
+# Mapeo de nombres de sensores a sensor_id 
 SENSOR_MAPPING = {
     "temperatura": 1,  # SHT75 - Temperatura
     "humedad": 2,      # SHT75 - Humedad  
-    "luminosidad": 3,  # LDR - Luminosidad
+    "radiacion_solar": 3,  # SR11-TR - Radiacion solar
     "humedad_suelo": 4 # Watermark - Humedad Suelo
 }
 
@@ -44,7 +44,7 @@ async def recibir_mediciones_waspmote(
     Formato esperado: {
         "temperatura": 25.5,
         "humedad": 60.2, 
-        "luminosidad": 450.0,
+        "radiacion_solar": 450.0,
         "humedad_suelo": 45.8
     }
     """

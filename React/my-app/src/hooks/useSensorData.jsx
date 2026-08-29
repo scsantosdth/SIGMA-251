@@ -103,7 +103,7 @@ function useSensorData() {
       record.timestamp || '',
       record.temperatura ?? '',
       record.humedad ?? '',
-      record.luminosidad ?? '',
+      record.radiacion_solar ?? '',
       record.humedad_suelo ?? '',
       record.bateria ?? ''
     ].join('|');
@@ -133,7 +133,7 @@ function useSensorData() {
       temperatura: { valor: latest.temperatura, timestamp: latest.timestamp, calidad: latest.source || 'offline' },
       humedad: { valor: latest.humedad, timestamp: latest.timestamp, calidad: latest.source || 'offline' },
       humedad_suelo: { valor: latest.humedad_suelo, timestamp: latest.timestamp, calidad: latest.source || 'offline' },
-      luminosidad: { valor: latest.luminosidad, timestamp: latest.timestamp, calidad: latest.source || 'offline' }
+      radiacion_solar: { valor: latest.radiacion_solar, timestamp: latest.timestamp, calidad: latest.source || 'offline' }
     });
     historicalDataRef.current = mergedHistory;
     setHistoricalData(mergedHistory);
@@ -154,7 +154,7 @@ function useSensorData() {
       await api.postWaspmoteMeasurement({
         temperatura: record.temperatura,
         humedad: record.humedad,
-        luminosidad: record.luminosidad,
+        radiacion_solar: record.radiacion_solar,
         humedad_suelo: record.humedad_suelo,
         timestamp: record.timestamp,
       });
@@ -206,7 +206,7 @@ function useSensorData() {
         temperatura: { valor: record.temperatura, timestamp, calidad: record.source },
         humedad: { valor: record.humedad, timestamp, calidad: record.source },
         humedad_suelo: { valor: record.humedad_suelo, timestamp, calidad: record.source },
-        luminosidad: { valor: record.luminosidad, timestamp, calidad: record.source },
+        radiacion_solar: { valor: record.radiacion_solar, timestamp, calidad: record.source },
       });
       if (record.bateria !== undefined && record.bateria !== null) {
         setBatteryData({ bateria: record.bateria, timestamp, offline: false });
@@ -232,7 +232,7 @@ function useSensorData() {
     const record = {
       temperatura: measurements.temperatura?.valor ?? measurements.temperatura ?? null,
       humedad: measurements.humedad?.valor ?? measurements.humedad ?? null,
-      luminosidad: measurements.luminosidad?.valor ?? measurements.luminosidad ?? null,
+      radiacion_solar: measurements.radiacion_solar?.valor ?? measurements.radiacion_solar ?? null,
       humedad_suelo: measurements.humedad_suelo?.valor ?? measurements.humedad_suelo ?? null,
       bateria: battery?.bateria ?? battery?.valor ?? battery?.level ?? null
     };

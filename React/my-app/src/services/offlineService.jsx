@@ -105,7 +105,7 @@ export const syncOfflineMediciones = async (api) => {
         await api.postWaspmoteMeasurement({
           temperatura: medicion.temperatura,
           humedad: medicion.humedad,
-          luminosidad: medicion.luminosidad,
+          radiacion_solar: medicion.radiacion_solar,
           humedad_suelo: medicion.humedad_suelo,
           timestamp: medicion.timestamp,
           offline_sync: true,

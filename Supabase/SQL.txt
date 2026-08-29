@@ -96,9 +96,22 @@ SELECT 1, 'Humedad', 'SHT75', '%'
 WHERE NOT EXISTS (SELECT 1 FROM sensores WHERE nombre = 'Humedad');
 
 INSERT INTO sensores (dispositivo_id, nombre, tipo, unidad)
-SELECT 1, 'Luminosidad', 'LDR', 'W/m²'
-WHERE NOT EXISTS (SELECT 1 FROM sensores WHERE nombre = 'Luminosidad');
+SELECT 1, 'Radiacion solar', 'SR11-TR', 'W/m²'
+WHERE NOT EXISTS (SELECT 1 FROM sensores WHERE nombre = 'Radiacion solar');
 
 INSERT INTO sensores (dispositivo_id, nombre, tipo, unidad)
 SELECT 1, 'Humedad Suelo', 'Watermark', '%'
 WHERE NOT EXISTS (SELECT 1 FROM sensores WHERE nombre = 'Humedad Suelo');
+
+-- Para una instalacion ya existente, los datos de id 3 pertenecen a la
+-- instrumentacion anterior y no son comparables con W/m².
+DELETE FROM mediciones WHERE sensor_id = 3;
+
+UPDATE sensores
+SET nombre = 'Radiacion solar',
+    tipo = 'SR11-TR',
+    unidad = 'W/m²',
+    rango_min = 0,
+    rango_max = 1600,
+    activo = TRUE
+WHERE id = 3;

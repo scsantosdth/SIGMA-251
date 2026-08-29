@@ -5,7 +5,7 @@ function MetricCard({ title, value, unit, maxValue }) {
     switch(title) {
       case 'Temperatura': return '#ff6b6b';
       case 'Humedad': return '#4ecdc4';
-      case 'Luminosidad': return '#ffd93d';
+      case 'Radiacion Solar': return '#ffd93d';
       case 'Humedad Suelo': return '#6c5ce7';
       default: return '#bb86fc';
     }

@@ -26,7 +26,7 @@ function Dashboard() {
 
   const temp = sensorData?.temperatura?.valor ?? 0;
   const hum = sensorData?.humedad?.valor ?? 0;
-  const lum = sensorData?.luminosidad?.valor ?? 0;
+  const radiacionSolar = sensorData?.radiacion_solar?.valor ?? 0;
   const soil = sensorData?.humedad_suelo?.valor ?? 0;
   const batteryValue = batteryData;
   const serialLabel = serial.connected
@@ -84,10 +84,10 @@ function Dashboard() {
               trend="up"
             />
             <MetricCard
-              title="Luminosidad"
-              value={lum}
-              unit="LUX"
-              maxValue={1000}
+              title="Radiacion Solar"
+              value={radiacionSolar}
+              unit="W/m²"
+              maxValue={1600}
               trend="down"
             />
             <MetricCard

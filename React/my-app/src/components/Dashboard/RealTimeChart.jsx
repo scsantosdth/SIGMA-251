@@ -28,7 +28,7 @@ function RealTimeChart({ historicalData, timeRange, onTimeRangeChange }) {
     const sensorKeyMap = {
       temperatura: 'temperatura',
       humedad: 'humedad',
-      luminosidad: 'luminosidad',
+      radiacion_solar: 'radiacion_solar',
       humedad_suelo: 'humedad_suelo'
     }
     
@@ -59,7 +59,7 @@ function RealTimeChart({ historicalData, timeRange, onTimeRangeChange }) {
         // Usar valores directamente (sin .sensor ni .valor)
         dataByTime[timeKey].temperatura = item.temperatura ?? 0
         dataByTime[timeKey].humedad = item.humedad ?? 0
-        dataByTime[timeKey].luminosidad = item.luminosidad ?? 0
+        dataByTime[timeKey].radiacion_solar = item.radiacion_solar ?? 0
         dataByTime[timeKey].humedad_suelo = item.humedad_suelo ?? 0
       }
     })
@@ -138,9 +138,9 @@ function RealTimeChart({ historicalData, timeRange, onTimeRangeChange }) {
           />
           <Line 
             type="monotone" 
-            dataKey="luminosidad" 
+            dataKey="radiacion_solar"
             stroke="#ffd93d" 
-            name="Luminosidad (LUX)" 
+            name="Radiacion solar (W/m²)"
             strokeWidth={2}
             dot={false}
           />
