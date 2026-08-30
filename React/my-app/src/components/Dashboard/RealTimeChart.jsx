@@ -1,5 +1,15 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
+const parseMeasurementTimestamp = (timestamp) => {
+  if (typeof timestamp !== 'string') return new Date(timestamp)
+
+  // Las filas antiguas de Supabase se guardaron como TIMESTAMP sin zona. En
+  // produccion esas marcas representan UTC, por lo que se agrega Z antes de
+  // convertirlas para no interpretarlas equivocadamente como hora local.
+  const hasTimezone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(timestamp)
+  return new Date(hasTimezone ? timestamp : `${timestamp}Z`)
+}
+
 function RealTimeChart({ historicalData, timeRange, onTimeRangeChange }) {
   // Opciones de tiempo
   const timeOptions = [
@@ -36,16 +46,17 @@ function RealTimeChart({ historicalData, timeRange, onTimeRangeChange }) {
     historicalData.forEach(item => {
       if (!item) return; // Saltar items null
 
-      const rawDate = new Date(item.timestamp)
+      const rawDate = parseMeasurementTimestamp(item.timestamp)
       if (Number.isNaN(rawDate.getTime())) return
 
       // Agrupar por segundo para no perder lecturas distintas que comparten el mismo minuto
       const timeKey = rawDate.toISOString().slice(0, 19)
-      const time = rawDate.toLocaleString('es-ES', {
+      const time = rawDate.toLocaleString('es-CO', {
         day: '2-digit',
         month: '2-digit',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        timeZone: 'America/Bogota'
       })
 
       if (!dataByTime[timeKey]) {

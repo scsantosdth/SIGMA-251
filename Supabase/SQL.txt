@@ -10,6 +10,18 @@ CREATE TABLE IF NOT EXISTS usuarios (
     ultimo_login TIMESTAMP
 );
 
+-- Tabla: sesiones JWT revocables
+CREATE TABLE IF NOT EXISTS sesiones_usuario (
+    id SERIAL PRIMARY KEY,
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    jti VARCHAR(64) UNIQUE NOT NULL,
+    creada_en TIMESTAMP NOT NULL DEFAULT NOW(),
+    revocada_en TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS ix_sesiones_usuario_usuario_id
+    ON sesiones_usuario (usuario_id);
+
 -- Tabla: dispositivos
 CREATE TABLE IF NOT EXISTS dispositivos (
     id SERIAL PRIMARY KEY,
@@ -41,7 +53,7 @@ CREATE TABLE IF NOT EXISTS mediciones (
     sensor_id INTEGER REFERENCES sensores(id) ON DELETE CASCADE,
     valor FLOAT NOT NULL,
     calidad VARCHAR(20) DEFAULT 'buena',
-    timestamp TIMESTAMP DEFAULT NOW()
+    timestamp TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Tabla: estado_sistema
@@ -52,7 +64,7 @@ CREATE TABLE IF NOT EXISTS estado_sistema (
     almacenamiento FLOAT,
     estado_conexion BOOLEAN DEFAULT TRUE,
     uptime INTEGER,
-    timestamp TIMESTAMP DEFAULT NOW()
+    timestamp TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Tabla: eventos_sistema
@@ -63,10 +75,10 @@ CREATE TABLE IF NOT EXISTS eventos_sistema (
     severidad VARCHAR(10) NOT NULL,
     mensaje TEXT NOT NULL,
     resuelto BOOLEAN DEFAULT FALSE,
-    timestamp TIMESTAMP DEFAULT NOW()
+    timestamp TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Tabla: configuracion (agregada para el intervalo automático)
+-- Tabla: configuracion
 CREATE TABLE IF NOT EXISTS configuracion (
     id SERIAL PRIMARY KEY,
     clave VARCHAR(100) UNIQUE NOT NULL,
@@ -75,43 +87,42 @@ CREATE TABLE IF NOT EXISTS configuracion (
     actualizado_en TIMESTAMP DEFAULT NOW()
 );
 
--- Insertar configuración inicial (intervalo automático = 5 minutos)
+-- Insertar configuración inicial
 INSERT INTO configuracion (clave, valor, descripcion)
-VALUES ('auto_intervalo_minutos', '5', 'Intervalo en minutos para almacenamiento automático de mediciones')
+VALUES ('auto_intervalo_minutos', '2', 'Intervalo en minutos para almacenamiento automático de mediciones')
 ON CONFLICT (clave) DO NOTHING;
 
--- Insertar datos iniciales de sensores (asumiendo dispositivo_id = 1)
--- Primero insertamos un dispositivo por defecto si no existe
+-- Insertar dispositivo por defecto
 INSERT INTO dispositivos (nombre, tipo, ubicacion)
 SELECT 'Waspmote Pro Agriculture', 'Estación base', 'Campo experimental'
 WHERE NOT EXISTS (SELECT 1 FROM dispositivos LIMIT 1);
 
--- Luego insertamos los sensores asociados al dispositivo recién creado (id=1)
-INSERT INTO sensores (dispositivo_id, nombre, tipo, unidad)
-SELECT 1, 'Temperatura', 'SHT75', '°C'
-WHERE NOT EXISTS (SELECT 1 FROM sensores WHERE nombre = 'Temperatura');
+-- Insertar sensores (con los IDs correctos)
+INSERT INTO sensores (id, dispositivo_id, nombre, tipo, unidad, rango_min, rango_max, activo)
+VALUES
+    (1, 1, 'Temperatura', 'SHT75', '°C', -40, 80, TRUE),
+    (2, 1, 'Humedad', 'SHT75', '%', 0, 100, TRUE),
+    (3, 1, 'Radiacion solar', 'SR11-TR', 'W/m²', 0, 1600, TRUE),
+    (4, 1, 'Humedad Suelo', 'Watermark', '%', 0, 100, TRUE)
+ON CONFLICT (id) DO UPDATE SET
+    nombre = EXCLUDED.nombre,
+    tipo = EXCLUDED.tipo,
+    unidad = EXCLUDED.unidad,
+    rango_min = EXCLUDED.rango_min,
+    rango_max = EXCLUDED.rango_max,
+    activo = EXCLUDED.activo;
 
-INSERT INTO sensores (dispositivo_id, nombre, tipo, unidad)
-SELECT 1, 'Humedad', 'SHT75', '%'
-WHERE NOT EXISTS (SELECT 1 FROM sensores WHERE nombre = 'Humedad');
-
-INSERT INTO sensores (dispositivo_id, nombre, tipo, unidad)
-SELECT 1, 'Radiacion solar', 'SR11-TR', 'W/m²'
-WHERE NOT EXISTS (SELECT 1 FROM sensores WHERE nombre = 'Radiacion solar');
-
-INSERT INTO sensores (dispositivo_id, nombre, tipo, unidad)
-SELECT 1, 'Humedad Suelo', 'Watermark', '%'
-WHERE NOT EXISTS (SELECT 1 FROM sensores WHERE nombre = 'Humedad Suelo');
-
--- Para una instalacion ya existente, los datos de id 3 pertenecen a la
--- instrumentacion anterior y no son comparables con W/m².
+-- Eliminar mediciones antiguas del sensor LDR (si existían)
 DELETE FROM mediciones WHERE sensor_id = 3;
 
-UPDATE sensores
-SET nombre = 'Radiacion solar',
-    tipo = 'SR11-TR',
-    unidad = 'W/m²',
-    rango_min = 0,
-    rango_max = 1600,
-    activo = TRUE
-WHERE id = 3;
+-- Migracion segura para una base creada con versiones anteriores del script.
+-- Los timestamps previos fueron generados en UTC por Supabase/Render.
+ALTER TABLE mediciones
+    ALTER COLUMN timestamp TYPE TIMESTAMPTZ
+    USING timestamp AT TIME ZONE 'UTC';
+ALTER TABLE estado_sistema
+    ALTER COLUMN timestamp TYPE TIMESTAMPTZ
+    USING timestamp AT TIME ZONE 'UTC';
+ALTER TABLE eventos_sistema
+    ALTER COLUMN timestamp TYPE TIMESTAMPTZ
+    USING timestamp AT TIME ZONE 'UTC';
