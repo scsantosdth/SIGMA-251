@@ -47,7 +47,8 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    # La autenticacion usa JWT en Authorization, no cookies.
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
