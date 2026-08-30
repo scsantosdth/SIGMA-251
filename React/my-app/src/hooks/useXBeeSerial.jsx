@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { WEB_SERIAL_BAUD_RATE, isWebSerialSupported, parseXBeeLine } from '../services/serialService.jsx';
 
+const XBee_RECONNECT_KEY = 'sigma_xbee_reconnect';
+const wait = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+
 const initialState = {
   supported: isWebSerialSupported(),
   connected: false,
@@ -19,6 +22,26 @@ export function useXBeeSerial(onMeasurement) {
   const decoderRef = useRef(new TextDecoder());
   const bufferRef = useRef('');
   const partialLineTimerRef = useRef(null);
+
+  const setReconnectPreference = useCallback((shouldReconnect) => {
+    try {
+      if (shouldReconnect) {
+        window.localStorage.setItem(XBee_RECONNECT_KEY, 'true');
+      } else {
+        window.localStorage.removeItem(XBee_RECONNECT_KEY);
+      }
+    } catch {
+      // Si localStorage no esta disponible, la conexion funciona durante la sesion actual.
+    }
+  }, []);
+
+  const shouldReconnect = useCallback(() => {
+    try {
+      return window.localStorage.getItem(XBee_RECONNECT_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  }, []);
 
   useEffect(() => {
     onMeasurementRef.current = onMeasurement;
@@ -94,9 +117,13 @@ export function useXBeeSerial(onMeasurement) {
     }
   }, [processLine, schedulePartialPayload]);
 
-  const disconnect = useCallback(async () => {
+  const disconnect = useCallback(async ({ forgetPreference = true } = {}) => {
     keepReadingRef.current = false;
     clearTimeout(partialLineTimerRef.current);
+
+    if (forgetPreference) {
+      setReconnectPreference(false);
+    }
 
     try {
       await readerRef.current?.cancel();
@@ -119,7 +146,7 @@ export function useXBeeSerial(onMeasurement) {
       connected: false,
       connecting: false,
     }));
-  }, []);
+  }, [setReconnectPreference]);
 
   const openPort = useCallback(async (port) => {
     if (!port.readable) {
@@ -156,8 +183,9 @@ export function useXBeeSerial(onMeasurement) {
     try {
       const port = await navigator.serial.requestPort();
       await openPort(port);
+      setReconnectPreference(true);
     } catch (error) {
-      await disconnect();
+      await disconnect({ forgetPreference: false });
       setSerialState((current) => ({
         ...current,
         connected: false,
@@ -165,11 +193,47 @@ export function useXBeeSerial(onMeasurement) {
         error: error?.message || 'No se pudo conectar el XBee',
       }));
     }
-  }, [disconnect, openPort]);
+  }, [disconnect, openPort, setReconnectPreference]);
+
+  // Solo se restablece la conexion cuando el usuario la dejo conectada antes
+  // de recargar. Chrome/Edge conserva el permiso del puerto ya autorizado.
+  useEffect(() => {
+    if (!isWebSerialSupported() || !shouldReconnect()) return undefined;
+    let cancelled = false;
+
+    navigator.serial.getPorts().then(async (ports) => {
+      if (cancelled || ports.length === 0 || portRef.current) return;
+      setSerialState((current) => ({ ...current, connecting: true, error: null }));
+
+      let lastError;
+      for (let attempt = 0; attempt < 6 && !cancelled; attempt += 1) {
+        try {
+          await openPort(ports[0]);
+          return;
+        } catch (error) {
+          lastError = error;
+          await wait(500);
+        }
+      }
+
+      if (!cancelled) {
+        setSerialState((current) => ({
+          ...current,
+          connected: false,
+          connecting: false,
+          error: lastError?.message || 'No se pudo reconectar el XBee',
+        }));
+      }
+    });
+
+    return () => { cancelled = true; };
+  }, [openPort, shouldReconnect]);
 
   useEffect(() => {
     return () => {
-      disconnect();
+      // Al desmontar por una recarga se cierra el puerto, pero se conserva la
+      // eleccion del usuario para que el nuevo documento pueda reconectarlo.
+      disconnect({ forgetPreference: false });
     };
   }, [disconnect]);
 
