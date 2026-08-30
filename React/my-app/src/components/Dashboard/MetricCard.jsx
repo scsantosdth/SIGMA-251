@@ -1,5 +1,6 @@
 function MetricCard({ title, value, unit, maxValue }) {
-  const percentage = Math.min((value / maxValue) * 100, 100);
+  const hasValue = Number.isFinite(value);
+  const percentage = hasValue ? Math.min((value / maxValue) * 100, 100) : 0;
   
   const getColor = () => {
     switch(title) {
@@ -43,7 +44,7 @@ function MetricCard({ title, value, unit, maxValue }) {
           />
         </svg>
         <div className="gauge-value">
-          {value.toFixed(1)}<span className="gauge-unit">{unit}</span>
+          {hasValue ? value.toFixed(1) : '—'}<span className="gauge-unit">{hasValue ? unit : ''}</span>
         </div>
       </div>
     </div>

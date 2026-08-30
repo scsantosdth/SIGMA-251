@@ -27,7 +27,7 @@ function Dashboard() {
   const temp = sensorData?.temperatura?.valor ?? 0;
   const hum = sensorData?.humedad?.valor ?? 0;
   const radiacionSolar = sensorData?.radiacion_solar?.valor ?? 0;
-  const soil = sensorData?.humedad_suelo?.valor ?? 0;
+  const soil = sensorData?.humedad_suelo?.valor ?? null;
   const batteryValue = batteryData;
   const serialLabel = serial.connected
     ? 'Desconectar XBee'

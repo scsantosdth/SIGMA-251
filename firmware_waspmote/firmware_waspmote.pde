@@ -65,7 +65,10 @@ void loop() {
   dtostrf(irradiance, 6, 2, radStr);
   dtostrf(watermark_freq, 6, 2, wmStr);
   itoa(battery_level, batteryStr, 10);
-  sprintf(payload, "T:%s,H:%s,R:%s,W:%s,B:%s", tempStr, humStr, radStr, wmStr, batteryStr);
+  // El salto de linea es el delimitador de trama para el XBee receptor. Sin
+  // este separador, dos transmisiones consecutivas pueden quedar pegadas en
+  // el buffer serie del navegador y una de ellas se pierde.
+  sprintf(payload, "T:%s,H:%s,R:%s,W:%s,B:%s\n", tempStr, humStr, radStr, wmStr, batteryStr);
 
   // --- Enviar por XBee ---
   int error = xbee802.send(DEST_ADDR, payload);

@@ -68,10 +68,10 @@ function RealTimeChart({ historicalData, timeRange, onTimeRangeChange }) {
         dataByTime[timeKey][key] = item.valor ?? 0
       } else {
         // Usar valores directamente (sin .sensor ni .valor)
-        dataByTime[timeKey].temperatura = item.temperatura ?? 0
-        dataByTime[timeKey].humedad = item.humedad ?? 0
-        dataByTime[timeKey].radiacion_solar = item.radiacion_solar ?? 0
-        dataByTime[timeKey].humedad_suelo = item.humedad_suelo ?? 0
+        dataByTime[timeKey].temperatura = item.temperatura ?? null
+        dataByTime[timeKey].humedad = item.humedad ?? null
+        dataByTime[timeKey].radiacion_solar = item.radiacion_solar ?? null
+        dataByTime[timeKey].humedad_suelo = item.humedad_suelo ?? null
       }
     })
     

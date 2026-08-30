@@ -3,6 +3,7 @@ import { WEB_SERIAL_BAUD_RATE, isWebSerialSupported, parseXBeeLine } from '../se
 
 const XBee_RECONNECT_KEY = 'sigma_xbee_reconnect';
 const wait = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+const MAX_SERIAL_BUFFER_LENGTH = 4096;
 
 const initialState = {
   supported: isWebSerialSupported(),
@@ -91,11 +92,27 @@ export function useXBeeSerial(onMeasurement) {
             if (!value) continue;
 
             bufferRef.current += decoderRef.current.decode(value, { stream: true });
+
+            // Una trama puede llegar fragmentada, pero el buffer nunca debe
+            // crecer indefinidamente si llega ruido o una trama corrupta.
+            if (bufferRef.current.length > MAX_SERIAL_BUFFER_LENGTH) {
+              const nextFrame = bufferRef.current.lastIndexOf('T:');
+              bufferRef.current = nextFrame >= 0
+                ? bufferRef.current.slice(nextFrame)
+                : '';
+              setSerialState((current) => ({
+                ...current,
+                error: 'Se descartaron datos seriales incompletos; esperando la siguiente medicion.',
+              }));
+            }
+
             const lines = bufferRef.current.split(/\r?\n/);
             bufferRef.current = lines.pop() || '';
 
             lines.map((line) => line.trim()).filter(Boolean).forEach(processLine);
-            // El firmware transmite T,H,R,W,B sin salto de linea.
+            // Compatibilidad temporal con firmware anterior sin salto de linea.
+            // El firmware actual delimita cada payload con \n, que es la via
+            // normal y evita perder tramas concatenadas.
             schedulePartialPayload();
           }
         } finally {
