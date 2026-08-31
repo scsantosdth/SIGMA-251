@@ -1,7 +1,7 @@
 #include <WaspSensorAgr_v20.h>
 #include <WaspXBee802.h>
-#include <WaspSD.h>
 #include <WaspRTC.h>
+#include <WaspSD.h>
 
 char DEST_ADDR[] = "0001";
 char payload[120];
@@ -15,7 +15,7 @@ void buildTimestamp(char* timestamp) {
 
 void setup() {
   USB.ON();
-  USB.println(F("Inicio - SHT75 + SR11-TR + Watermark1"));
+  USB.println(F("Inicio - SHT75 + SR11-TR (sin Watermark)"));
   
   SensorAgrv20.ON();
   
@@ -23,9 +23,7 @@ void setup() {
   SensorAgrv20.setSensorMode(SENS_OFF, SENS_AGR_LDR);
   pinMode(DIGITAL5, OUTPUT);
   digitalWrite(DIGITAL5, LOW);
-
-  RTC.ON();
-
+  
   SD.ON();
   if (SD.flag == 0) {
     sdReady = true;
@@ -36,8 +34,9 @@ void setup() {
   } else {
     USB.print(F("Error SD. Flag: ")); USB.println(SD.flag);
   }
-  
+
   xbee802.ON();
+  RTC.ON();
   delay(200);
 }
 
@@ -52,22 +51,14 @@ void loop() {
   // --- Radiación Solar SR11-TR (ANALOG7) ---
   int raw = analogRead(ANALOG7);
   float v_rad = (raw * 3.3) / 1023.0;
-  
-  // Offset calibrado a 0.030V (para que en reposo dé 0.00 W/m²)
   float offset = 0.030;
   float irradiance = (v_rad - offset) * 10000.0;
   if (irradiance < 0) irradiance = 0;
 
-  // --- Humedad Suelo (Watermark 1) ---
-  SensorAgrv20.setSensorMode(SENS_ON, SENS_AGR_WATERMARK_1);
-  delay(100);
-  pinMode(DIGITAL3, OUTPUT);
-  digitalWrite(DIGITAL3, LOW);
-  delay(50);
-  float watermark_freq = SensorAgrv20.readValue(SENS_AGR_WATERMARK_1);
-  SensorAgrv20.setSensorMode(SENS_OFF, SENS_AGR_WATERMARK_1);
+  // Watermark esta desconectado. No se envia un valor fijo: 0 Hz se
+  // convertiria en 100% de humedad de suelo y almacenaria un dato falso.
 
-  // El API de Waspmote devuelve el nivel de bateria como porcentaje (0-100).
+  // Batería
   uint8_t battery_level = PWR.getBatteryLevel();
 
   USB.println(F("---- Datos ----"));
@@ -76,30 +67,25 @@ void loop() {
   USB.print(F("Temperatura (C): ")); USB.println(temperature);
   USB.print(F("Humedad (%RH): ")); USB.println(humidity);
   USB.print(F("Radiacion (W/m2): ")); USB.println(irradiance);
-  USB.print(F("Watermark1 (Hz): ")); USB.println(watermark_freq);
+  USB.println(F("Watermark: no conectado"));
   USB.print(F("Bateria (%): ")); USB.println((int) battery_level);
   USB.println(F("----------------"));
 
-  // --- Construir payload: el dashboard recibe este formato por Web Serial ---
-  char tempStr[16], humStr[16], radStr[16], wmStr[16], batteryStr[4];
-  char timestamp[13];
+  // --- Payload ---
+  char tempStr[16], humStr[16], radStr[16], batteryStr[4], timestamp[13];
   dtostrf(temperature, 6, 2, tempStr);
   dtostrf(humidity, 6, 2, humStr);
   dtostrf(irradiance, 6, 2, radStr);
-  dtostrf(watermark_freq, 6, 2, wmStr);
   itoa(battery_level, batteryStr, 10);
-  // El salto de linea es el delimitador de trama para el XBee receptor. Sin
-  // este separador, dos transmisiones consecutivas pueden quedar pegadas en
-  // el buffer serie del navegador y una de ellas se pierde.
-  sprintf(payload, "T:%s,H:%s,R:%s,W:%s,B:%s", tempStr, humStr, radStr, wmStr, batteryStr);
+  buildTimestamp(timestamp);
+  
+  snprintf(payload, sizeof(payload), "T:%s,H:%s,R:%s,B:%s,TS:%s,O:0",
+           tempStr, humStr, radStr, batteryStr, timestamp);
 
   // Registro historico permanente. Nunca se elimina automaticamente,
   // aunque el envio por XBee sea exitoso.
-  buildTimestamp(timestamp);
   if (sdReady) {
-    char line[140];
-    snprintf(line, sizeof(line), "TS:%s,%s", timestamp, payload);
-    if (SD.appendln("LOG.TXT", line) == 1) {
+    if (SD.appendln("LOG.TXT", payload) == 1) {
       USB.println(F("Medicion guardada en SD"));
     } else {
       USB.print(F("Error guardando en SD. Flag: ")); USB.println(SD.flag);
@@ -119,3 +105,4 @@ void loop() {
 
   delay(5000);
 }
+
