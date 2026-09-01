@@ -12,6 +12,7 @@ const initialState = {
   error: null,
   lastLine: null,
   lastTimestamp: null,
+  commandStatus: null,
 };
 
 export function useXBeeSerial(onMeasurement) {
@@ -56,6 +57,9 @@ export function useXBeeSerial(onMeasurement) {
       lastLine: line,
       lastTimestamp: new Date().toISOString(),
       error: parsed ? null : current.error,
+      commandStatus: /^PONG\s*$/i.test(line)
+        ? 'Respuesta recibida: PONG'
+        : current.commandStatus,
     }));
 
     if (parsed) {
@@ -212,6 +216,29 @@ export function useXBeeSerial(onMeasurement) {
     }
   }, [disconnect, openPort, setReconnectPreference]);
 
+  const sendCommand = useCallback(async (command) => {
+    const port = portRef.current;
+    if (!port?.writable || !serialState.connected) {
+      throw new Error('Conecta primero el XBee');
+    }
+
+    const normalizedCommand = String(command || '').trim();
+    if (!normalizedCommand) throw new Error('La petición está vacía');
+
+    setSerialState((current) => ({
+      ...current,
+      commandStatus: `Enviando: ${normalizedCommand}`,
+      error: null,
+    }));
+
+    const writer = port.writable.getWriter();
+    try {
+      await writer.write(new TextEncoder().encode(`${normalizedCommand}\n`));
+    } finally {
+      writer.releaseLock();
+    }
+  }, [serialState.connected]);
+
   // Solo se restablece la conexion cuando el usuario la dejo conectada antes
   // de recargar. Chrome/Edge conserva el permiso del puerto ya autorizado.
   useEffect(() => {
@@ -258,5 +285,6 @@ export function useXBeeSerial(onMeasurement) {
     ...serialState,
     connect,
     disconnect,
+    sendCommand,
   };
 }

@@ -44,6 +44,14 @@ function Dashboard() {
     serial.connect();
   };
 
+  const handlePingClick = async () => {
+    try {
+      await serial.sendCommand('PING');
+    } catch (commandError) {
+      console.error('Error enviando PING:', commandError);
+    }
+  };
+
   return (
     <MainLayout onLogout={handleLogout} batteryData={batteryValue}>
       <div className="dashboard-container">
@@ -59,7 +67,18 @@ function Dashboard() {
               >
                 {serialLabel}
               </button>
+              <button
+                className="xbee-connect-button"
+                onClick={handlePingClick}
+                disabled={!serial.connected}
+                title="Envía PING al Waspmote y espera PONG"
+              >
+                Probar petición
+              </button>
             </div>
+            {serial.commandStatus && (
+              <div className="serial-command-status">{serial.commandStatus}</div>
+            )}
           </div>
 
           {(loading || error || serial.error || offline) && (
