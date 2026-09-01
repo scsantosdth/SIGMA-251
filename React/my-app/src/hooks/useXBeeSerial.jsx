@@ -62,9 +62,7 @@ export function useXBeeSerial(onMeasurement, onControlMessage) {
       error: parsed ? null : current.error,
       commandStatus: /^SD_RECORD:/i.test(line)
         ? `Registro SD recibido: ${line.slice('SD_RECORD:'.length)}`
-        : /^(PONG|SYNC_ACK|SYNC_BEGIN|SYNC_END|SD_EMPTY)\s*$/i.test(line)
-          ? current.commandStatus
-          : current.commandStatus,
+        : current.commandStatus,
     }));
 
     if (sdRecord) {
@@ -73,8 +71,17 @@ export function useXBeeSerial(onMeasurement, onControlMessage) {
       onControlMessageRef.current?.({ type: 'sync-begin', line });
     } else if (/^SYNC_END\s*$/i.test(line)) {
       onControlMessageRef.current?.({ type: 'sync-end', line });
-    } else if (parsed) {
-      onMeasurementRef.current?.(parsed, line);
+    } else {
+      const waitMatch = line.match(/^SYNC_WAIT:(\d+)\s*$/i);
+      if (waitMatch) {
+        onControlMessageRef.current?.({
+          type: 'sync-wait',
+          nextOffset: Number(waitMatch[1]),
+          line,
+        });
+      } else if (parsed) {
+        onMeasurementRef.current?.(parsed, line);
+      }
     }
   }, []);
 

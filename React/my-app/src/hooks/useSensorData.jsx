@@ -52,6 +52,7 @@ function useSensorData() {
   const historicalDataRef = useRef(historicalData);
   const serialConnectedRef = useRef(false);
   const sdSyncPromisesRef = useRef([]);
+  const sendSerialCommandRef = useRef(null);
   const cloudSyncIntervalRef = useRef(getCloudIntervalMinutes() * 60 * 1000);
   const lastCloudSyncScheduledRef = useRef(getLastCloudSampleAt());
 
@@ -269,10 +270,25 @@ function useSensorData() {
           console.error('No se pudo actualizar la grafica tras SYNC_SD:', refreshError);
         }
       });
+      return;
+    }
+
+    if (message?.type === 'sync-wait') {
+      const pending = [...sdSyncPromisesRef.current];
+      Promise.allSettled(pending).then(() => {
+        const request = sendSerialCommandRef.current?.(`SYNC_NEXT:${message.nextOffset}`);
+        request?.catch((commandError) => {
+            console.error('No se pudo solicitar el siguiente bloque SD:', commandError);
+        });
+      });
     }
   }, [timeRange]);
 
   const serial = useXBeeSerial(handleSerialMeasurement, handleSerialControlMessage);
+
+  useEffect(() => {
+    sendSerialCommandRef.current = serial.sendCommand;
+  }, [serial.sendCommand]);
 
   useEffect(() => {
     serialConnectedRef.current = serial.connected;
