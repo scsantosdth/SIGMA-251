@@ -53,6 +53,7 @@ function useSensorData() {
   const serialConnectedRef = useRef(false);
   const sdSyncPromisesRef = useRef([]);
   const sendSerialCommandRef = useRef(null);
+  const sdNextRequestedRef = useRef(null);
   const cloudSyncIntervalRef = useRef(getCloudIntervalMinutes() * 60 * 1000);
   const lastCloudSyncScheduledRef = useRef(getLastCloudSampleAt());
 
@@ -256,6 +257,7 @@ function useSensorData() {
     }
 
     if (message?.type === 'sync-end') {
+      sdNextRequestedRef.current = null;
       const pending = [...sdSyncPromisesRef.current];
       Promise.allSettled(pending).then(async () => {
         if (!isOnline() || !api.isAuthenticated()) return;
@@ -274,15 +276,23 @@ function useSensorData() {
     }
 
     if (message?.type === 'sync-wait') {
+      if (sdNextRequestedRef.current === message.nextOffset) {
+        console.info('SYNC_WAIT repetido ignorado:', message.nextOffset);
+        return;
+      }
+
+      sdNextRequestedRef.current = message.nextOffset;
       const pending = [...sdSyncPromisesRef.current];
       Promise.allSettled(pending).then(() => {
         console.info('Solicitando siguiente bloque SD:', message.nextOffset);
         const request = sendSerialCommandRef.current?.(`SYNC_NEXT:${message.nextOffset}`);
         if (!request) {
+          sdNextRequestedRef.current = null;
           console.error('No hay puerto serial disponible para solicitar el siguiente bloque SD');
           return;
         }
         request.catch((commandError) => {
+            sdNextRequestedRef.current = null;
             console.error('No se pudo solicitar el siguiente bloque SD:', commandError);
         });
       });
