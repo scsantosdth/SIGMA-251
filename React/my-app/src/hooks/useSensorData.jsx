@@ -223,6 +223,20 @@ function useSensorData() {
   const handleSerialControlMessage = useCallback((message) => {
     if (message?.type === 'sd-record') {
       console.info('Registro SD recibido; pendiente de sincronizacion:', message.record);
+
+      if (isOnline() && api.isAuthenticated()) {
+        api.postSdMeasurement({
+          temperatura: message.record.temperatura,
+          humedad: message.record.humedad,
+          radiacion_solar: message.record.radiacion_solar,
+          humedad_suelo: message.record.humedad_suelo,
+          timestamp: message.record.timestamp,
+        }).then((result) => {
+          console.info('Resultado sincronizacion SD:', result);
+        }).catch((syncError) => {
+          console.error('No se pudo enviar el registro SD:', syncError);
+        });
+      }
     }
   }, []);
 

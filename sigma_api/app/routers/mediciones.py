@@ -113,6 +113,57 @@ async def recibir_mediciones_waspmote(
         print(f"❌ Error guardando mediciones: {e}")
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
 
+@router.post("/waspmote/sd")
+async def recibir_medicion_sd(
+    datos: Dict[str, Any],
+    db: Session = Depends(get_db)
+):
+    """Recibe un registro historico de la SD de forma idempotente."""
+    if not datos:
+        raise HTTPException(status_code=400, detail="No se recibieron datos SD")
+
+    timestamp_medicion = parse_timestamp(datos.get("timestamp"))
+    if timestamp_medicion is None:
+        raise HTTPException(status_code=400, detail="El timestamp del RTC no es valido")
+
+    insertados = []
+    duplicados = []
+
+    try:
+        for tipo_sensor, valor in datos.items():
+            if tipo_sensor not in SENSOR_MAPPING or valor is None:
+                continue
+
+            sensor_id = SENSOR_MAPPING[tipo_sensor]
+            existente = db.query(Medicion).filter(
+                Medicion.sensor_id == sensor_id,
+                Medicion.timestamp == timestamp_medicion
+            ).first()
+
+            if existente:
+                duplicados.append(tipo_sensor)
+                continue
+
+            db.add(Medicion(
+                sensor_id=sensor_id,
+                valor=float(valor),
+                calidad="sd",
+                timestamp=timestamp_medicion
+            ))
+            insertados.append(tipo_sensor)
+
+        db.commit()
+        return {
+            "status": "success" if insertados else "duplicate",
+            "insertados": insertados,
+            "duplicados": duplicados,
+            "timestamp": timestamp_medicion.isoformat()
+        }
+    except Exception as e:
+        db.rollback()
+        print(f"Error guardando registro SD: {e}")
+        raise HTTPException(status_code=500, detail=f"Error guardando registro SD: {str(e)}")
+
 @router.post("/manual")
 async def guardar_medicion_manual(db: Session = Depends(get_db)):
     """

@@ -134,6 +134,12 @@ export const api = {
       body: JSON.stringify(measurementData),
     }),
 
+  postSdMeasurement: async (measurementData) =>
+    fetchWithAuth(`${API_BASE}/api/mediciones/waspmote/sd`, {
+      method: 'POST',
+      body: JSON.stringify(measurementData),
+    }),
+
   postWaspmoteBattery: async (batteryData) =>
     fetchWithAuth(`${API_BASE}/api/estado-sistema/waspmote`, {
       method: 'POST',
