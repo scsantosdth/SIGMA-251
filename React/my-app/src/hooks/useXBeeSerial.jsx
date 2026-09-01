@@ -57,8 +57,8 @@ export function useXBeeSerial(onMeasurement) {
       lastLine: line,
       lastTimestamp: new Date().toISOString(),
       error: parsed ? null : current.error,
-      commandStatus: /^PONG\s*$/i.test(line)
-        ? 'Respuesta recibida: PONG'
+      commandStatus: /^(PONG|SYNC_BEGIN|SYNC_END)\s*$/i.test(line)
+        ? `Respuesta recibida: ${line}`
         : current.commandStatus,
     }));
 

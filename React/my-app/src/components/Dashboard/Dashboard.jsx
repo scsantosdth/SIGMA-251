@@ -52,6 +52,14 @@ function Dashboard() {
     }
   };
 
+  const handleSyncTestClick = async () => {
+    try {
+      await serial.sendCommand('SYNC_SD');
+    } catch (commandError) {
+      console.error('Error enviando SYNC_SD:', commandError);
+    }
+  };
+
   return (
     <MainLayout onLogout={handleLogout} batteryData={batteryValue}>
       <div className="dashboard-container">
@@ -74,6 +82,14 @@ function Dashboard() {
                 title="Envía PING al Waspmote y espera PONG"
               >
                 Probar petición
+              </button>
+              <button
+                className="xbee-connect-button"
+                onClick={handleSyncTestClick}
+                disabled={!serial.connected}
+                title="Prueba la petición de sincronización SD"
+              >
+                Probar SYNC SD
               </button>
             </div>
             {serial.commandStatus && (
