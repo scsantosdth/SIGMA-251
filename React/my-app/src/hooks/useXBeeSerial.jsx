@@ -57,9 +57,11 @@ export function useXBeeSerial(onMeasurement) {
       lastLine: line,
       lastTimestamp: new Date().toISOString(),
       error: parsed ? null : current.error,
-      commandStatus: /^(PONG|SYNC_ACK|SYNC_BEGIN|SYNC_END|SD_EMPTY|SD_RECORD:)/i.test(line)
-        ? `Respuesta recibida: ${line}`
-        : current.commandStatus,
+      commandStatus: /^SD_RECORD:/i.test(line)
+        ? `Registro SD recibido: ${line.slice('SD_RECORD:'.length)}`
+        : /^(PONG|SYNC_ACK|SYNC_BEGIN|SYNC_END|SD_EMPTY)\s*$/i.test(line)
+          ? current.commandStatus
+          : current.commandStatus,
     }));
 
     if (parsed) {
