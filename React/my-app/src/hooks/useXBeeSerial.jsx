@@ -52,39 +52,40 @@ export function useXBeeSerial(onMeasurement, onControlMessage) {
   }, [onMeasurement, onControlMessage]);
 
   const processLine = useCallback((line) => {
-    const sdRecord = parseSdRecordLine(line);
-    const parsed = parseXBeeLine(line);
+    const cleanLine = String(line || '').replace(/\0/g, '').trim();
+    const sdRecord = parseSdRecordLine(cleanLine);
+    const parsed = parseXBeeLine(cleanLine);
 
     if (!sdRecord && !parsed) {
-      console.info('Linea de control XBee recibida:', JSON.stringify(line));
+      console.info('Linea de control XBee recibida:', JSON.stringify(cleanLine));
     }
 
     setSerialState((current) => ({
       ...current,
-      lastLine: line,
+      lastLine: cleanLine,
       lastTimestamp: new Date().toISOString(),
       error: parsed ? null : current.error,
-      commandStatus: /^SD_RECORD:/i.test(line)
-        ? `Registro SD recibido: ${line.slice('SD_RECORD:'.length)}`
-        : /^SYNC_WAIT:/i.test(line)
-          ? `Bloque SD recibido; solicitando desde ${line.slice('SYNC_WAIT:'.length).trim()}`
+      commandStatus: /^SD_RECORD:/i.test(cleanLine)
+        ? `Registro SD recibido: ${cleanLine.slice('SD_RECORD:'.length)}`
+        : /^SYNC_WAIT:/i.test(cleanLine)
+          ? `Bloque SD recibido; solicitando desde ${cleanLine.slice('SYNC_WAIT:'.length).trim()}`
         : current.commandStatus,
     }));
 
     if (sdRecord) {
       onControlMessageRef.current?.({ type: 'sd-record', record: sdRecord, line });
-    } else if (/^SYNC_BEGIN\s*$/i.test(line)) {
-      onControlMessageRef.current?.({ type: 'sync-begin', line });
-    } else if (/^SYNC_END\s*$/i.test(line)) {
-      onControlMessageRef.current?.({ type: 'sync-end', line });
+    } else if (/^SYNC_BEGIN\s*$/i.test(cleanLine)) {
+      onControlMessageRef.current?.({ type: 'sync-begin', line: cleanLine });
+    } else if (/^SYNC_END\s*$/i.test(cleanLine)) {
+      onControlMessageRef.current?.({ type: 'sync-end', line: cleanLine });
     } else {
-      const waitMatch = line.match(/^SYNC_WAIT:(\d+)\s*$/i);
+      const waitMatch = cleanLine.match(/^SYNC_WAIT:(\d+)\s*$/i);
       if (waitMatch) {
         console.info('Bloque SD recibido; siguiente offset:', Number(waitMatch[1]));
         onControlMessageRef.current?.({
           type: 'sync-wait',
           nextOffset: Number(waitMatch[1]),
-          line,
+          line: cleanLine,
         });
       } else if (parsed) {
         onMeasurementRef.current?.(parsed, line);
