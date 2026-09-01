@@ -220,7 +220,13 @@ function useSensorData() {
     await syncSingleSerialMeasurement(savedRecord);
   }, [applyOfflineData, syncSingleSerialMeasurement]);
 
-  const serial = useXBeeSerial(handleSerialMeasurement);
+  const handleSerialControlMessage = useCallback((message) => {
+    if (message?.type === 'sd-record') {
+      console.info('Registro SD recibido; pendiente de sincronizacion:', message.record);
+    }
+  }, []);
+
+  const serial = useXBeeSerial(handleSerialMeasurement, handleSerialControlMessage);
 
   useEffect(() => {
     serialConnectedRef.current = serial.connected;

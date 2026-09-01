@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { WEB_SERIAL_BAUD_RATE, isWebSerialSupported, parseXBeeLine } from '../services/serialService.jsx';
+import { WEB_SERIAL_BAUD_RATE, isWebSerialSupported, parseXBeeLine, parseSdRecordLine } from '../services/serialService.jsx';
 
 const XBee_RECONNECT_KEY = 'sigma_xbee_reconnect';
 const wait = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
@@ -15,9 +15,10 @@ const initialState = {
   commandStatus: null,
 };
 
-export function useXBeeSerial(onMeasurement) {
+export function useXBeeSerial(onMeasurement, onControlMessage) {
   const [serialState, setSerialState] = useState(initialState);
   const onMeasurementRef = useRef(onMeasurement);
+  const onControlMessageRef = useRef(onControlMessage);
   const portRef = useRef(null);
   const readerRef = useRef(null);
   const keepReadingRef = useRef(false);
@@ -47,9 +48,11 @@ export function useXBeeSerial(onMeasurement) {
 
   useEffect(() => {
     onMeasurementRef.current = onMeasurement;
-  }, [onMeasurement]);
+    onControlMessageRef.current = onControlMessage;
+  }, [onMeasurement, onControlMessage]);
 
   const processLine = useCallback((line) => {
+    const sdRecord = parseSdRecordLine(line);
     const parsed = parseXBeeLine(line);
 
     setSerialState((current) => ({
@@ -64,7 +67,9 @@ export function useXBeeSerial(onMeasurement) {
           : current.commandStatus,
     }));
 
-    if (parsed) {
+    if (sdRecord) {
+      onControlMessageRef.current?.({ type: 'sd-record', record: sdRecord, line });
+    } else if (parsed) {
       onMeasurementRef.current?.(parsed, line);
     }
   }, []);

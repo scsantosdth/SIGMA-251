@@ -1,6 +1,7 @@
 const SENSOR_PATTERN_WITH_BATTERY = /T:\s*([\d.-]+),\s*H:\s*([\d.-]+),\s*R:\s*([\d.-]+),\s*W:\s*([\d.-]+),\s*B:\s*([\d.-]+)/i;
 const SENSOR_PATTERN = /T:\s*([\d.-]+),\s*H:\s*([\d.-]+),\s*R:\s*([\d.-]+),\s*W:\s*([\d.-]+)/i;
 const SENSOR_PATTERN_WITHOUT_WATERMARK = /T:\s*([\d.-]+),\s*H:\s*([\d.-]+),\s*R:\s*([\d.-]+),\s*B:\s*([\d.-]+)/i;
+const SD_RECORD_PATTERN = /^SD_RECORD:\s*(.*)$/i;
 
 export const WEB_SERIAL_BAUD_RATE = 115200;
 
@@ -65,5 +66,44 @@ export const parseXBeeLine = (rawLine) => {
     radiacion_solar: round(radiacion_solar, 2),
     humedad_suelo: watermark === null ? null : round(convertWatermarkToPercentage(watermark), 1),
     bateria: bateria === null ? null : round(bateria, 1),
+  };
+};
+
+const rtcTimestampToIso = (value) => {
+  if (!/^\d{12}$/.test(value)) return null;
+
+  const year = 2000 + Number(value.slice(0, 2));
+  const month = Number(value.slice(2, 4));
+  const day = Number(value.slice(4, 6));
+  const hour = Number(value.slice(6, 8));
+  const minute = Number(value.slice(8, 10));
+  const second = Number(value.slice(10, 12));
+
+  if (month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 || minute > 59 || second > 59) {
+    return null;
+  }
+
+  // El RTC del Waspmote se mantiene en hora de Colombia (UTC-05:00).
+  return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:${String(second).padStart(2, '0')}-05:00`;
+};
+
+export const parseSdRecordLine = (rawLine) => {
+  if (!rawLine || typeof rawLine !== 'string') return null;
+
+  const wrapper = rawLine.trim().match(SD_RECORD_PATTERN);
+  if (!wrapper) return null;
+
+  const record = wrapper[1].trim();
+  const measurement = parseXBeeLine(record);
+  const timestampMatch = record.match(/(?:^|,)TS:\s*(\d{12})(?:,|$)/i);
+  const timestamp = timestampMatch ? rtcTimestampToIso(timestampMatch[1]) : null;
+
+  if (!measurement || !timestamp) return null;
+
+  return {
+    ...measurement,
+    timestamp,
+    raw: record,
+    source: 'sd',
   };
 };
