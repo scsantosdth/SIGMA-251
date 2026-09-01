@@ -55,6 +55,10 @@ export function useXBeeSerial(onMeasurement, onControlMessage) {
     const sdRecord = parseSdRecordLine(line);
     const parsed = parseXBeeLine(line);
 
+    if (!sdRecord && !parsed) {
+      console.info('Linea de control XBee recibida:', JSON.stringify(line));
+    }
+
     setSerialState((current) => ({
       ...current,
       lastLine: line,
@@ -90,7 +94,8 @@ export function useXBeeSerial(onMeasurement, onControlMessage) {
 
   const processBufferedPayload = useCallback(() => {
     const payload = bufferRef.current.trim();
-    if (!payload || !parseXBeeLine(payload)) return;
+    const isControlMessage = /^(SYNC_(BEGIN|END|WAIT:\d+)|SD_EMPTY)\s*$/i.test(payload);
+    if (!payload || (!parseXBeeLine(payload) && !parseSdRecordLine(payload) && !isControlMessage)) return;
     bufferRef.current = '';
     processLine(payload);
   }, [processLine]);
