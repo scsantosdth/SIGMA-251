@@ -282,6 +282,7 @@ function useSensorData() {
           const nextOffset = sdFallbackNextOffsetRef.current;
           sdNextRequestedRef.current = nextOffset;
           sdFallbackNextOffsetRef.current = nextOffset + 3;
+          sdRecordsInBatchRef.current = 0;
           const pending = [...sdSyncPromisesRef.current];
           Promise.allSettled(pending).then(() => {
             console.info('No se recibio SYNC_WAIT; solicitando siguiente bloque SD:', nextOffset);
@@ -349,6 +350,11 @@ function useSensorData() {
             console.error('No se pudo solicitar el siguiente bloque SD:', commandError);
         });
       });
+      return;
+    }
+
+    if (message?.type === 'sync-next-ack') {
+      console.info('Waspmote confirmo SYNC_NEXT:', message.nextOffset);
     }
   }, [timeRange]);
 
