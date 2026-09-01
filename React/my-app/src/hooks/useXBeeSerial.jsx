@@ -69,6 +69,10 @@ export function useXBeeSerial(onMeasurement, onControlMessage) {
 
     if (sdRecord) {
       onControlMessageRef.current?.({ type: 'sd-record', record: sdRecord, line });
+    } else if (/^SYNC_BEGIN\s*$/i.test(line)) {
+      onControlMessageRef.current?.({ type: 'sync-begin', line });
+    } else if (/^SYNC_END\s*$/i.test(line)) {
+      onControlMessageRef.current?.({ type: 'sync-end', line });
     } else if (parsed) {
       onMeasurementRef.current?.(parsed, line);
     }

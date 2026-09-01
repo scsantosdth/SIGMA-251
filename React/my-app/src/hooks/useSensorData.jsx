@@ -51,6 +51,7 @@ function useSensorData() {
   const batteryDataRef = useRef(batteryData);
   const historicalDataRef = useRef(historicalData);
   const serialConnectedRef = useRef(false);
+  const sdSyncPromisesRef = useRef([]);
   const cloudSyncIntervalRef = useRef(getCloudIntervalMinutes() * 60 * 1000);
   const lastCloudSyncScheduledRef = useRef(getLastCloudSampleAt());
 
@@ -225,7 +226,7 @@ function useSensorData() {
       console.info('Registro SD recibido; pendiente de sincronizacion:', message.record);
 
       if (isOnline() && api.isAuthenticated()) {
-        api.postSdMeasurement({
+        const syncPromise = api.postSdMeasurement({
           temperatura: message.record.temperatura,
           humedad: message.record.humedad,
           radiacion_solar: message.record.radiacion_solar,
@@ -233,12 +234,43 @@ function useSensorData() {
           timestamp: message.record.timestamp,
         }).then((result) => {
           console.info('Resultado sincronizacion SD:', result);
+          return result;
         }).catch((syncError) => {
           console.error('No se pudo enviar el registro SD:', syncError);
+          throw syncError;
+        });
+
+        sdSyncPromisesRef.current.push(syncPromise);
+        syncPromise.then(() => {
+          sdSyncPromisesRef.current = sdSyncPromisesRef.current.filter(
+            (pending) => pending !== syncPromise
+          );
+        }, () => {
+          sdSyncPromisesRef.current = sdSyncPromisesRef.current.filter(
+            (pending) => pending !== syncPromise
+          );
         });
       }
+      return;
     }
-  }, []);
+
+    if (message?.type === 'sync-end') {
+      const pending = [...sdSyncPromisesRef.current];
+      Promise.allSettled(pending).then(async () => {
+        if (!isOnline() || !api.isAuthenticated()) return;
+
+        try {
+          const payload = await api.getHistoricalData(timeRange);
+          const historical = unwrapApiData(payload) || [];
+          historicalDataRef.current = historical;
+          setHistoricalData(historical);
+          console.info('Grafica actualizada tras sincronizacion SD');
+        } catch (refreshError) {
+          console.error('No se pudo actualizar la grafica tras SYNC_SD:', refreshError);
+        }
+      });
+    }
+  }, [timeRange]);
 
   const serial = useXBeeSerial(handleSerialMeasurement, handleSerialControlMessage);
 
