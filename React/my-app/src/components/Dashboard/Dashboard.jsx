@@ -89,7 +89,7 @@ function Dashboard() {
                 disabled={!serial.connected}
                 title="Prueba la petición de sincronización SD"
               >
-                Probar SYNC SD
+                Sincronizar SD
               </button>
             </div>
             {serial.commandStatus && (

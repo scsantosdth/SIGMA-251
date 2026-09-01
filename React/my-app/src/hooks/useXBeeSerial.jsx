@@ -67,9 +67,13 @@ export function useXBeeSerial(onMeasurement, onControlMessage) {
       error: parsed ? null : current.error,
       commandStatus: /^SD_RECORD:/i.test(cleanLine)
         ? `Registro SD recibido: ${cleanLine.slice('SD_RECORD:'.length)}`
-        : /^SYNC_WAIT:/i.test(cleanLine)
-          ? `Bloque SD recibido; solicitando desde ${cleanLine.slice('SYNC_WAIT:'.length).trim()}`
-        : current.commandStatus,
+        : /^SYNC_BEGIN$/i.test(cleanLine)
+          ? 'Sincronizacion SD iniciada'
+          : /^SYNC_END$/i.test(cleanLine)
+            ? 'Sincronizacion SD terminada'
+            : /^SYNC_ERROR$/i.test(cleanLine)
+              ? 'Error durante la sincronizacion SD'
+              : current.commandStatus,
     }));
 
     if (sdRecord) {
@@ -78,33 +82,14 @@ export function useXBeeSerial(onMeasurement, onControlMessage) {
       onControlMessageRef.current?.({ type: 'sync-begin', line: cleanLine });
     } else if (/^SYNC_END\s*$/i.test(cleanLine)) {
       onControlMessageRef.current?.({ type: 'sync-end', line: cleanLine });
-      } else {
-        const waitMatch = cleanLine.match(/^SYNC_WAIT:(\d+)\s*$/i);
-        if (waitMatch) {
-        console.info('Bloque SD recibido; siguiente offset:', Number(waitMatch[1]));
-          onControlMessageRef.current?.({
-            type: 'sync-wait',
-            nextOffset: Number(waitMatch[1]),
-            line: cleanLine,
-          });
-        } else {
-          const nextAckMatch = cleanLine.match(/^SYNC_NEXT_ACK:(\d+)\s*$/i);
-          if (nextAckMatch) {
-            onControlMessageRef.current?.({
-              type: 'sync-next-ack',
-              nextOffset: Number(nextAckMatch[1]),
-              line: cleanLine,
-            });
-          } else if (parsed) {
-            onMeasurementRef.current?.(parsed, line);
-          }
-        }
-      }
+    } else if (parsed) {
+      onMeasurementRef.current?.(parsed, line);
+    }
   }, []);
 
   const processBufferedPayload = useCallback(() => {
     const payload = bufferRef.current.trim();
-    const isControlMessage = /^(SYNC_(BEGIN|END|WAIT:\d+|NEXT_ACK:\d+)|SD_EMPTY)\s*$/i.test(payload);
+    const isControlMessage = /^(SYNC_(BEGIN|END|ERROR)|SD_EMPTY)\s*$/i.test(payload);
     if (!payload || (!parseXBeeLine(payload) && !parseSdRecordLine(payload) && !isControlMessage)) return;
     bufferRef.current = '';
     processLine(payload);
