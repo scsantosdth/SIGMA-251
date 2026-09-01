@@ -54,6 +54,10 @@ function useSensorData() {
   const sdSyncPromisesRef = useRef([]);
   const sendSerialCommandRef = useRef(null);
   const sdNextRequestedRef = useRef(null);
+  const sdSyncActiveRef = useRef(false);
+  const sdRecordsInBatchRef = useRef(0);
+  const sdFallbackTimerRef = useRef(null);
+  const sdFallbackNextOffsetRef = useRef(3);
   const cloudSyncIntervalRef = useRef(getCloudIntervalMinutes() * 60 * 1000);
   const lastCloudSyncScheduledRef = useRef(getLastCloudSampleAt());
 
@@ -224,8 +228,22 @@ function useSensorData() {
   }, [applyOfflineData, syncSingleSerialMeasurement]);
 
   const handleSerialControlMessage = useCallback((message) => {
+    if (message?.type === 'sync-begin') {
+      sdSyncActiveRef.current = true;
+      sdRecordsInBatchRef.current = 0;
+      sdFallbackNextOffsetRef.current = 3;
+      clearTimeout(sdFallbackTimerRef.current);
+      sdFallbackTimerRef.current = null;
+      return;
+    }
+
     if (message?.type === 'sd-record') {
       console.info('Registro SD recibido; pendiente de sincronizacion:', message.record);
+      if (sdRecordsInBatchRef.current === 0 && sdNextRequestedRef.current !== null) {
+        // Ya comenzaron a llegar los registros del bloque solicitado.
+        sdNextRequestedRef.current = null;
+      }
+      sdRecordsInBatchRef.current += 1;
 
       if (isOnline() && api.isAuthenticated()) {
         const syncPromise = api.postSdMeasurement({
@@ -253,10 +271,41 @@ function useSensorData() {
           );
         });
       }
+
+      // Respaldo: si el aviso SYNC_WAIT se pierde, el navegador solicita el
+      // siguiente bloque después de recibir las tres líneas esperadas.
+      if (sdSyncActiveRef.current && sdRecordsInBatchRef.current === 3) {
+        clearTimeout(sdFallbackTimerRef.current);
+        sdFallbackTimerRef.current = window.setTimeout(() => {
+          if (sdNextRequestedRef.current !== null) return;
+
+          const nextOffset = sdFallbackNextOffsetRef.current;
+          sdNextRequestedRef.current = nextOffset;
+          sdFallbackNextOffsetRef.current = nextOffset + 3;
+          const pending = [...sdSyncPromisesRef.current];
+          Promise.allSettled(pending).then(() => {
+            console.info('No se recibio SYNC_WAIT; solicitando siguiente bloque SD:', nextOffset);
+            const request = sendSerialCommandRef.current?.(`SYNC_NEXT:${nextOffset}`);
+            if (!request) {
+              sdNextRequestedRef.current = null;
+              console.error('No hay puerto serial disponible para solicitar el siguiente bloque SD');
+              return;
+            }
+            request.catch((commandError) => {
+              sdNextRequestedRef.current = null;
+              console.error('No se pudo solicitar el siguiente bloque SD:', commandError);
+            });
+          });
+        }, 1500);
+      }
       return;
     }
 
     if (message?.type === 'sync-end') {
+      sdSyncActiveRef.current = false;
+      sdRecordsInBatchRef.current = 0;
+      clearTimeout(sdFallbackTimerRef.current);
+      sdFallbackTimerRef.current = null;
       sdNextRequestedRef.current = null;
       const pending = [...sdSyncPromisesRef.current];
       Promise.allSettled(pending).then(async () => {
@@ -276,6 +325,10 @@ function useSensorData() {
     }
 
     if (message?.type === 'sync-wait') {
+      clearTimeout(sdFallbackTimerRef.current);
+      sdFallbackTimerRef.current = null;
+      sdRecordsInBatchRef.current = 0;
+      sdFallbackNextOffsetRef.current = message.nextOffset + 3;
       if (sdNextRequestedRef.current === message.nextOffset) {
         console.info('SYNC_WAIT repetido ignorado:', message.nextOffset);
         return;
