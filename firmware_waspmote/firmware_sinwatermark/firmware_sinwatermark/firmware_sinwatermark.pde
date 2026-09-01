@@ -6,6 +6,94 @@
 char DEST_ADDR[] = "0001";
 char payload[120];
 bool sdReady = false;
+bool syncActive = false;
+char syncAck[] = "SYNC_ACK\n";
+char syncBegin[] = "SYNC_BEGIN\n";
+char syncEnd[] = "SYNC_END\n";
+char syncError[] = "SYNC_ERROR\n";
+const unsigned long MEASUREMENT_INTERVAL_MS = 30000UL;
+
+void handleSyncRequest();
+
+void sendAllSdRecords() {
+  uint32_t lineNumber = 0;
+  uint32_t recordsSent = 0;
+
+  while (true) {
+    SD.buffer[0] = '\0';
+    char* lineRead = SD.catln("LOG.TXT", lineNumber, 1);
+    if (lineRead == NULL || lineRead[0] == '\0') break;
+    lineNumber++;
+
+    char record[180];
+    snprintf(record, sizeof(record), "SD_RECORD:%s\n", SD.buffer);
+    uint8_t sendError = 1;
+    for (uint8_t attempt = 0; attempt < 3; attempt++) {
+      sendError = xbee802.send(DEST_ADDR, record);
+      if (sendError == 0) break;
+      delay(100);
+    }
+
+    if (sendError != 0) {
+      USB.print(F("Error enviando registro SD: "));
+      USB.println(sendError);
+      syncActive = false;
+      xbee802.send(DEST_ADDR, syncError);
+      return;
+    }
+
+    recordsSent++;
+    delay(250);
+  }
+
+  USB.print(F("Sincronizacion SD terminada. Registros enviados: "));
+  USB.println((unsigned long)recordsSent);
+  syncActive = false;
+  delay(200);
+  xbee802.send(DEST_ADDR, syncEnd);
+}
+
+bool isValidAirReading(float temperature, float humidity) {
+  return temperature >= -40.0 && temperature <= 80.0 &&
+         humidity >= 0.0 && humidity <= 100.0;
+}
+
+void waitForNextMeasurement() {
+  unsigned long elapsed = 0;
+  while (elapsed < MEASUREMENT_INTERVAL_MS) {
+    handleSyncRequest();
+    delay(100);
+    elapsed += 100;
+  }
+}
+
+void handleSyncRequest() {
+  if (xbee802.available() <= 0) return;
+
+  xbee802.treatData();
+  if (xbee802.error_RX) return;
+
+  while (xbee802.pos > 0) {
+    char* received = (char*)xbee802.packet_finished[xbee802.pos - 1]->data;
+    bool isSyncStart = (strncmp(received, "SYNC_SD", 7) == 0) ||
+                       (strncmp(received, "YNC_SD", 6) == 0);
+    USB.print(F("Comando XBee recibido: "));
+    USB.println(received);
+
+    if (isSyncStart && !syncActive && sdReady) {
+      syncActive = true;
+      xbee802.send(DEST_ADDR, syncAck);
+      delay(100);
+      xbee802.send(DEST_ADDR, syncBegin);
+      delay(100);
+      sendAllSdRecords();
+    }
+
+    free(xbee802.packet_finished[xbee802.pos - 1]);
+    xbee802.packet_finished[xbee802.pos - 1] = NULL;
+    xbee802.pos--;
+  }
+}
 
 void buildTimestamp(char* timestamp) {
   RTC.getTime();
@@ -41,12 +129,33 @@ void setup() {
 }
 
 void loop() {
+  handleSyncRequest();
+
   // --- Humedad y temperatura (SHT75 Sensirion) ---
   SensorAgrv20.setSensorMode(SENS_ON, SENS_AGR_SENSIRION);
   delay(100);
   float temperature = SensorAgrv20.readValue(SENS_AGR_SENSIRION, SENSIRION_TEMP);
   float humidity    = SensorAgrv20.readValue(SENS_AGR_SENSIRION, SENSIRION_HUM);
   SensorAgrv20.setSensorMode(SENS_OFF, SENS_AGR_SENSIRION);
+
+  // Una lectura negativa de humedad indica un fallo/transitorio del sensor.
+  // Reintentar evita guardar y transmitir datos imposibles.
+  bool validAirReading = isValidAirReading(temperature, humidity);
+  for (uint8_t attempt = 1; attempt < 3 && !validAirReading; attempt++) {
+    delay(100);
+    SensorAgrv20.setSensorMode(SENS_ON, SENS_AGR_SENSIRION);
+    delay(100);
+    temperature = SensorAgrv20.readValue(SENS_AGR_SENSIRION, SENSIRION_TEMP);
+    humidity = SensorAgrv20.readValue(SENS_AGR_SENSIRION, SENSIRION_HUM);
+    SensorAgrv20.setSensorMode(SENS_OFF, SENS_AGR_SENSIRION);
+    validAirReading = isValidAirReading(temperature, humidity);
+  }
+
+  if (!validAirReading) {
+    USB.println(F("Lectura SHT75 invalida; no se guarda ni se envia"));
+    waitForNextMeasurement();
+    return;
+  }
 
   // --- Radiación Solar SR11-TR (ANALOG7) ---
   int raw = analogRead(ANALOG7);
@@ -103,6 +212,10 @@ void loop() {
     USB.print(F("Error enviar: ")); USB.println(error);
   }
 
-  delay(5000);
+  // Atender una peticion que haya llegado mientras se tomaban los sensores.
+  handleSyncRequest();
+
+  // Esperar 30 segundos entre mediciones sin dejar de escuchar el XBee.
+  waitForNextMeasurement();
 }
 

@@ -44,15 +44,7 @@ function Dashboard() {
     serial.connect();
   };
 
-  const handlePingClick = async () => {
-    try {
-      await serial.sendCommand('PING');
-    } catch (commandError) {
-      console.error('Error enviando PING:', commandError);
-    }
-  };
-
-  const handleSyncTestClick = async () => {
+  const handleSyncClick = async () => {
     try {
       await serial.sendCommand('SYNC_SD');
     } catch (commandError) {
@@ -76,25 +68,14 @@ function Dashboard() {
                 {serialLabel}
               </button>
               <button
-                className="xbee-connect-button"
-                onClick={handlePingClick}
+                className="manual-measure-button sync-sd-button"
+                onClick={handleSyncClick}
                 disabled={!serial.connected}
-                title="Envía PING al Waspmote y espera PONG"
-              >
-                Probar petición
-              </button>
-              <button
-                className="xbee-connect-button"
-                onClick={handleSyncTestClick}
-                disabled={!serial.connected}
-                title="Prueba la petición de sincronización SD"
+                title="Sincronizar registros conservados en la memoria SD"
               >
                 Sincronizar SD
               </button>
             </div>
-            {serial.commandStatus && (
-              <div className="serial-command-status">{serial.commandStatus}</div>
-            )}
           </div>
 
           {(loading || error || serial.error || offline) && (

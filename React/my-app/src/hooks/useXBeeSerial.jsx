@@ -12,7 +12,6 @@ const initialState = {
   error: null,
   lastLine: null,
   lastTimestamp: null,
-  commandStatus: null,
 };
 
 export function useXBeeSerial(onMeasurement, onControlMessage) {
@@ -65,15 +64,6 @@ export function useXBeeSerial(onMeasurement, onControlMessage) {
       lastLine: cleanLine,
       lastTimestamp: new Date().toISOString(),
       error: parsed ? null : current.error,
-      commandStatus: /^SD_RECORD:/i.test(cleanLine)
-        ? `Registro SD recibido: ${cleanLine.slice('SD_RECORD:'.length)}`
-        : /^SYNC_BEGIN$/i.test(cleanLine)
-          ? 'Sincronizacion SD iniciada'
-          : /^SYNC_END$/i.test(cleanLine)
-            ? 'Sincronizacion SD terminada'
-            : /^SYNC_ERROR$/i.test(cleanLine)
-              ? 'Error durante la sincronizacion SD'
-              : current.commandStatus,
     }));
 
     if (sdRecord) {
@@ -248,7 +238,6 @@ export function useXBeeSerial(onMeasurement, onControlMessage) {
 
     setSerialState((current) => ({
       ...current,
-      commandStatus: `Enviando: ${normalizedCommand}`,
       error: null,
     }));
 

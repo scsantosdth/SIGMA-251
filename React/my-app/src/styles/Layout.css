@@ -741,6 +741,10 @@
   transform: translateY(1px);
 }
 
+.sync-sd-button {
+  margin-right: 0;
+}
+
 /* Ajuste para los botones en header-right */
 .header-actions {
   display: flex;
