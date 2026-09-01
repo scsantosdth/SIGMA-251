@@ -128,6 +128,17 @@ async def recibir_medicion_sd(
 
     insertados = []
     duplicados = []
+    omitidos_intervalo = []
+
+    config = db.query(Configuracion).filter(
+        Configuracion.clave == "auto_intervalo_minutos"
+    ).first()
+    intervalo_minutos = int(config.valor) if config else 5
+    intervalo_segundos = intervalo_minutos * 60
+    epoch = datetime(1970, 1, 1)
+    bucket_number = int((timestamp_medicion - epoch).total_seconds() // intervalo_segundos)
+    bucket_start = epoch + timedelta(seconds=bucket_number * intervalo_segundos)
+    bucket_end = bucket_start + timedelta(seconds=intervalo_segundos)
 
     try:
         for tipo_sensor, valor in datos.items():
@@ -144,6 +155,15 @@ async def recibir_medicion_sd(
                 duplicados.append(tipo_sensor)
                 continue
 
+            existente_intervalo = db.query(Medicion).filter(
+                Medicion.sensor_id == sensor_id,
+                Medicion.timestamp >= bucket_start,
+                Medicion.timestamp < bucket_end
+            ).first()
+            if existente_intervalo:
+                omitidos_intervalo.append(tipo_sensor)
+                continue
+
             db.add(Medicion(
                 sensor_id=sensor_id,
                 valor=float(valor),
@@ -153,10 +173,19 @@ async def recibir_medicion_sd(
             insertados.append(tipo_sensor)
 
         db.commit()
+        if insertados:
+            status = "success"
+        elif omitidos_intervalo:
+            status = "skipped_interval"
+        else:
+            status = "duplicate"
+
         return {
-            "status": "success" if insertados else "duplicate",
+            "status": status,
             "insertados": insertados,
             "duplicados": duplicados,
+            "omitidos_intervalo": omitidos_intervalo,
+            "intervalo_minutos": intervalo_minutos,
             "timestamp": timestamp_medicion.isoformat()
         }
     except Exception as e:
