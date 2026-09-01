@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from typing import Dict, Any, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from app.database import get_db
 from app.models.database_models import EstadoSistema, EventoSistema
 
@@ -15,7 +15,7 @@ def parse_timestamp(value):
     try:
         timestamp = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
         if timestamp.tzinfo is not None:
-            timestamp = timestamp.replace(tzinfo=None)
+            timestamp = timestamp.astimezone(timezone.utc).replace(tzinfo=None)
         return timestamp
     except ValueError:
         return None

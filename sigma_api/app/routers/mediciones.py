@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
 from typing import Dict, Any, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from app.database import get_db
 from app.models.database_models import Medicion, Sensor, Dispositivo, Configuracion  # ← agregado Configuracion
 
@@ -29,7 +29,9 @@ def parse_timestamp(value):
     try:
         timestamp = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
         if timestamp.tzinfo is not None:
-            timestamp = timestamp.replace(tzinfo=None)
+            # Guardar como UTC naive porque la columna de Supabase es TIMESTAMPTZ
+            # y SQLAlchemy devuelve este modelo sin informacion de zona.
+            timestamp = timestamp.astimezone(timezone.utc).replace(tzinfo=None)
         return timestamp
     except ValueError:
         return None

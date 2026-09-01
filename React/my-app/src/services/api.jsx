@@ -126,7 +126,9 @@ export const api = {
   getBatteryStatus: async () => fetchWithAuth(`${API_BASE}/api/estado-sistema/waspmote/latest`),
 
   getHistoricalData: async (hours = 24) =>
-    fetchWithAuth(`${API_BASE}/api/mediciones/waspmote/historical?horas=${hours}`),
+    fetchWithAuth(`${API_BASE}/api/mediciones/waspmote/historical?horas=${hours}`, {
+      cache: 'no-store',
+    }),
 
   postWaspmoteMeasurement: async (measurementData) =>
     fetchWithAuth(`${API_BASE}/api/mediciones/waspmote`, {
