@@ -62,6 +62,8 @@ export function useXBeeSerial(onMeasurement, onControlMessage) {
       error: parsed ? null : current.error,
       commandStatus: /^SD_RECORD:/i.test(line)
         ? `Registro SD recibido: ${line.slice('SD_RECORD:'.length)}`
+        : /^SYNC_WAIT:/i.test(line)
+          ? `Bloque SD recibido; solicitando desde ${line.slice('SYNC_WAIT:'.length).trim()}`
         : current.commandStatus,
     }));
 
@@ -74,6 +76,7 @@ export function useXBeeSerial(onMeasurement, onControlMessage) {
     } else {
       const waitMatch = line.match(/^SYNC_WAIT:(\d+)\s*$/i);
       if (waitMatch) {
+        console.info('Bloque SD recibido; siguiente offset:', Number(waitMatch[1]));
         onControlMessageRef.current?.({
           type: 'sync-wait',
           nextOffset: Number(waitMatch[1]),

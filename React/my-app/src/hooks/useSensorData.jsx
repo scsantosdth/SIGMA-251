@@ -276,8 +276,13 @@ function useSensorData() {
     if (message?.type === 'sync-wait') {
       const pending = [...sdSyncPromisesRef.current];
       Promise.allSettled(pending).then(() => {
+        console.info('Solicitando siguiente bloque SD:', message.nextOffset);
         const request = sendSerialCommandRef.current?.(`SYNC_NEXT:${message.nextOffset}`);
-        request?.catch((commandError) => {
+        if (!request) {
+          console.error('No hay puerto serial disponible para solicitar el siguiente bloque SD');
+          return;
+        }
+        request.catch((commandError) => {
             console.error('No se pudo solicitar el siguiente bloque SD:', commandError);
         });
       });
