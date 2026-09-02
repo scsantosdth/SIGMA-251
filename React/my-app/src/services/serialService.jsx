@@ -8,10 +8,16 @@ export const WEB_SERIAL_BAUD_RATE = 115200;
 export const isWebSerialSupported = () =>
   typeof navigator !== 'undefined' && 'serial' in navigator;
 
-export const convertWatermarkToPercentage = (watermarkHz) => {
-  const clamped = Math.max(50, Math.min(10000, Number(watermarkHz)));
-  const percentage = 100.0 - ((clamped - 50) / 99.5) * 100.0;
-  return Math.max(0, Math.min(100, percentage));
+export const convertWatermarkHzToCbar = (watermarkHz) => {
+  const frequency = Number(watermarkHz);
+  if (!Number.isFinite(frequency) || frequency <= 0) return null;
+
+  const clamped = Math.max(300, Math.min(7600, frequency));
+  const denominator = (2.8875 * clamped) - 137.5;
+  if (denominator === 0) return null;
+
+  const tensionCbar = (150940 - (19.74 * clamped)) / denominator;
+  return Math.max(0, Math.min(200, tensionCbar));
 };
 
 const round = (value, decimals) => {
@@ -60,11 +66,14 @@ export const parseXBeeLine = (rawLine) => {
   const sensorValues = { temperatura, humedad, radiacion_solar, watermark, bateria };
   if (!isValidSensorRange(sensorValues)) return null;
 
+  const tensionCbar = watermark === null ? null : convertWatermarkHzToCbar(watermark);
+
   return {
     temperatura: round(temperatura, 2),
     humedad: round(humedad, 2),
     radiacion_solar: round(radiacion_solar, 2),
-    humedad_suelo: watermark === null ? null : round(convertWatermarkToPercentage(watermark), 1),
+    // Se conserva la clave historica de la API; el valor ahora esta en cbar.
+    humedad_suelo: tensionCbar === null ? null : round(tensionCbar, 1),
     bateria: bateria === null ? null : round(bateria, 1),
   };
 };

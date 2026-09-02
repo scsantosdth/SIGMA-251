@@ -164,8 +164,8 @@ void loop() {
   float irradiance = (v_rad - offset) * 10000.0;
   if (irradiance < 0) irradiance = 0;
 
-  // Watermark esta desconectado. No se envia un valor fijo: 0 Hz se
-  // convertiria en 100% de humedad de suelo y almacenaria un dato falso.
+  // Watermark esta desconectado. No se envia un valor fijo: 0 Hz debe
+  // tratarse como una lectura invalida y no como una tension ficticia.
 
   // Batería
   uint8_t battery_level = PWR.getBatteryLevel();

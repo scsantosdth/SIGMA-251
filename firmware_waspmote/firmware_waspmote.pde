@@ -167,7 +167,10 @@ void loop() {
   float irradiance = (v_rad - offset) * 10000.0;
   if (irradiance < 0) irradiance = 0;
 
-  // --- Humedad Suelo (Watermark 1) ---
+  // --- Tension de Agua del Suelo (Watermark 1) ---
+  // readValue() entrega la frecuencia del sensor en Hz. Se conserva cruda
+  // en W y la conversion a TA (cbar), usando la Ecuacion 4, se realiza en
+  // los receptores para que el firmware siga siendo independiente de la UI.
   SensorAgrv20.setSensorMode(SENS_ON, SENS_AGR_WATERMARK_1);
   delay(100);
   pinMode(DIGITAL3, OUTPUT);
@@ -185,7 +188,7 @@ void loop() {
   USB.print(F("Temperatura (C): ")); USB.println(temperature);
   USB.print(F("Humedad (%RH): ")); USB.println(humidity);
   USB.print(F("Radiacion (W/m2): ")); USB.println(irradiance);
-  USB.print(F("Watermark1 (Hz): ")); USB.println(watermark_freq);
+  USB.print(F("Watermark1 frecuencia (Hz): ")); USB.println(watermark_freq);
   USB.print(F("Bateria (%): ")); USB.println((int) battery_level);
   USB.println(F("----------------"));
 

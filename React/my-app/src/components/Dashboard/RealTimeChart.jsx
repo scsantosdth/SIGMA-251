@@ -159,7 +159,7 @@ function RealTimeChart({ historicalData, timeRange, onTimeRangeChange }) {
             type="monotone" 
             dataKey="humedad_suelo" 
             stroke="#6c5ce7" 
-            name="Humedad Suelo (%)" 
+            name="Tension Agua Suelo (cbar)"
             strokeWidth={2}
             dot={false}
           />

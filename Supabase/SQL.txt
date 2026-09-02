@@ -103,7 +103,7 @@ VALUES
     (1, 1, 'Temperatura', 'SHT75', '°C', -40, 80, TRUE),
     (2, 1, 'Humedad', 'SHT75', '%', 0, 100, TRUE),
     (3, 1, 'Radiacion solar', 'SR11-TR', 'W/m²', 0, 1600, TRUE),
-    (4, 1, 'Humedad Suelo', 'Watermark', '%', 0, 100, TRUE)
+    (4, 1, 'Tension Agua Suelo', 'Watermark', 'cbar', 0, 200, TRUE)
 ON CONFLICT (id) DO UPDATE SET
     nombre = EXCLUDED.nombre,
     tipo = EXCLUDED.tipo,

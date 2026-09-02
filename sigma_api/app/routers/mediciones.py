@@ -13,7 +13,8 @@ SENSOR_MAPPING = {
     "temperatura": 1,  # SHT75 - Temperatura
     "humedad": 2,      # SHT75 - Humedad  
     "radiacion_solar": 3,  # SR11-TR - Radiacion solar
-    "humedad_suelo": 4 # Watermark - Humedad Suelo
+    # Clave historica de la API; el valor almacenado es TA en cbar.
+    "humedad_suelo": 4 # Watermark - Tension Agua Suelo
 }
 
 SENSOR_NAMES = {v: k for k, v in SENSOR_MAPPING.items()}
@@ -47,7 +48,7 @@ async def recibir_mediciones_waspmote(
         "temperatura": 25.5,
         "humedad": 60.2, 
         "radiacion_solar": 450.0,
-        "humedad_suelo": 45.8
+        "humedad_suelo": 45.8  # Tension de agua del suelo (cbar)
     }
     """
     global ultima_medicion_recibida, ultimo_guardado_timestamp

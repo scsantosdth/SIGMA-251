@@ -90,7 +90,7 @@ INSERT INTO sensores (dispositivo_id, nombre, tipo, unidad, rango_min, rango_max
 (1, 'SHT75 - Temperatura', 'temperatura', '°C', -40, 80),
 (1, 'SHT75 - Humedad', 'humedad', '%', 0, 100),
 (1, 'SR11-TR - Radiacion Solar', 'radiacion_solar', 'W/m²', 0, 1600),
-(1, 'Watermark - Humedad Suelo', 'humedad_suelo', '%', 0, 100);
+(1, 'Watermark - Tension Agua Suelo', 'humedad_suelo', 'cbar', 0, 200);
 
 -- 4. Evento inicial del sistema
 INSERT INTO eventos_sistema (dispositivo_id, tipo, severidad, mensaje) 

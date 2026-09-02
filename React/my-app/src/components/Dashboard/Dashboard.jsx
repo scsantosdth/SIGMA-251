@@ -107,10 +107,10 @@ function Dashboard() {
               trend="down"
             />
             <MetricCard
-              title="Humedad Suelo"
+              title="Tension Agua Suelo"
               value={soil}
-              unit="%"
-              maxValue={100}
+              unit="cbar"
+              maxValue={200}
               trend="stable"
             />
           </div>
