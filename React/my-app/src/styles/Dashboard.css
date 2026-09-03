@@ -227,8 +227,8 @@
 }
 
 .chart-axis-labels-left {
-  flex-direction: row;
-  gap: 0.15rem;
+  flex-direction: column;
+  gap: 0.5rem;
   width: 30px;
 }
 
