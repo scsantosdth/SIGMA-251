@@ -49,6 +49,9 @@ function useSensorData() {
 
   const sensorDataRef = useRef(sensorData);
   const batteryDataRef = useRef(batteryData);
+  // Evita que una respuesta API iniciada antes de una lectura serial
+  // reemplace la bateria actual por un valor historico.
+  const latestSerialBatteryAtRef = useRef(0);
   const historicalDataRef = useRef(historicalData);
   const serialConnectedRef = useRef(false);
   const sdSyncPromisesRef = useRef([]);
@@ -139,7 +142,19 @@ function useSensorData() {
     historicalDataRef.current = mergedHistory;
     setHistoricalData(mergedHistory);
 
-    if (latest.bateria !== undefined && latest.bateria !== null) {
+    const latestTimestamp = Date.parse(latest.timestamp || '');
+    const serialBatteryIsNewer = latestSerialBatteryAtRef.current > 0 && (
+      !Number.isFinite(latestTimestamp) ||
+      latestTimestamp < latestSerialBatteryAtRef.current
+    );
+
+    // Las lecturas locales antiguas no deben pisar la lectura serial actual.
+    // La rama web-serial si puede aplicar su propia muestra inmediatamente.
+    if (
+      latest.bateria !== undefined &&
+      latest.bateria !== null &&
+      (latest.source === 'web-serial' || (!serialConnectedRef.current && !serialBatteryIsNewer))
+    ) {
       setBatteryData({ bateria: latest.bateria, timestamp: latest.timestamp, offline: !latest.synced });
     }
 
@@ -181,6 +196,11 @@ function useSensorData() {
   const handleSerialMeasurement = useCallback(async (measurement) => {
     const timestamp = new Date().toISOString();
     const now = Date.now();
+
+    if (measurement.bateria !== undefined && measurement.bateria !== null) {
+      latestSerialBatteryAtRef.current = Date.parse(timestamp);
+    }
+
     const shouldSyncToCloud = now - lastCloudSyncScheduledRef.current >= cloudSyncIntervalRef.current;
     if (shouldSyncToCloud) {
       lastCloudSyncScheduledRef.current = now;
@@ -375,7 +395,18 @@ function useSensorData() {
 
       if (batteryResult.status === 'fulfilled') {
         const battery = unwrapApiData(batteryResult.value) || {};
-        setBatteryData(battery);
+        const apiBatteryTimestamp = Date.parse(battery.timestamp || '');
+        const serialBatteryIsNewer = latestSerialBatteryAtRef.current > 0 && (
+          !Number.isFinite(apiBatteryTimestamp) ||
+          apiBatteryTimestamp < latestSerialBatteryAtRef.current
+        );
+
+        // Mientras llega XBee, la bateria visible debe venir del mismo flujo
+        // serial que actualiza las medidas. La API puede responder con una
+        // muestra anterior porque el guardado en nube es periodico.
+        if (!serialConnectedRef.current && !serialBatteryIsNewer) {
+          setBatteryData(battery);
+        }
       }
 
       if (historicalResult.status === 'fulfilled') {
