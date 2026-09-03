@@ -113,11 +113,16 @@ function RealTimeChart({ historicalData, timeRange, onTimeRangeChange }) {
 
       <div className="chart-with-axis-labels">
         <div className="chart-axis-labels chart-axis-labels-left" aria-label="Variables del eje izquierdo">
-          <span className="chart-axis-label" style={{ color: '#ff6b6b' }}>
-            Temperatura (°C)
-          </span>
-          <span className="chart-axis-label" style={{ color: '#4ecdc4' }}>
-            Humedad (%)
+          <div className="chart-axis-labels-left-group">
+            <span className="chart-axis-label" style={{ color: '#ff6b6b' }}>
+              Temperatura (°C)
+            </span>
+            <span className="chart-axis-label" style={{ color: '#4ecdc4' }}>
+              Humedad (%)
+            </span>
+          </div>
+          <span className="chart-axis-label" style={{ color: '#6c5ce7' }}>
+            Tensión agua suelo (cbar)
           </span>
         </div>
 

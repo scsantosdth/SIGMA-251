@@ -227,9 +227,16 @@
 }
 
 .chart-axis-labels-left {
+  flex-direction: row;
+  gap: 0.25rem;
+  width: 34px;
+}
+
+.chart-axis-labels-left-group {
+  display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 0.5rem;
-  width: 30px;
 }
 
 .chart-axis-labels-right {
@@ -466,7 +473,7 @@
   }
 
   .chart-axis-labels-left {
-    width: 26px;
+    width: 30px;
     gap: 0.1rem;
   }
 
