@@ -1,4 +1,4 @@
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 const parseMeasurementTimestamp = (timestamp) => {
   if (typeof timestamp !== 'string') return new Date(timestamp)
@@ -111,17 +111,44 @@ function RealTimeChart({ historicalData, timeRange, onTimeRangeChange }) {
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={chartData}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+      <div className="chart-with-axis-labels">
+        <div className="chart-axis-labels chart-axis-labels-left" aria-label="Variables del eje izquierdo">
+          <span className="chart-axis-label" style={{ color: '#ff6b6b' }}>
+            Temperatura (°C)
+          </span>
+          <span className="chart-axis-label" style={{ color: '#4ecdc4' }}>
+            Humedad (%)
+          </span>
+        </div>
+
+        <ResponsiveContainer width="100%" height={320}>
+        <LineChart data={chartData} margin={{ top: 10, right: 0, left: 0, bottom: 25 }}>
+          <CartesianGrid yAxisId="left" strokeDasharray="3 3" stroke="#333" />
           <XAxis 
             dataKey="time" 
             stroke="#9e9e9e"
             fontSize={12}
+            height={40}
+            label={{
+              value: 'Fecha y hora',
+              position: 'bottom',
+              offset: 0,
+              fill: '#9e9e9e',
+              fontSize: 12
+            }}
           />
-          <YAxis 
-            stroke="#9e9e9e"
-            fontSize={12}
+          <YAxis
+            yAxisId="left"
+            stroke="#cbd5e1"
+            tick={{ fill: '#cbd5e1', fontSize: 12 }}
+            width={44}
+          />
+          <YAxis
+            yAxisId="right"
+            orientation="right"
+            stroke="#ffd93d"
+            tick={{ fill: '#ffd93d', fontSize: 12 }}
+            width={36}
           />
           <Tooltip 
             contentStyle={{ 
@@ -130,10 +157,10 @@ function RealTimeChart({ historicalData, timeRange, onTimeRangeChange }) {
               borderRadius: '8px'
             }}
           />
-          <Legend />
           <Line 
             type="monotone" 
             dataKey="temperatura" 
+            yAxisId="left"
             stroke="#ff6b6b" 
             name="Temperatura (°C)" 
             strokeWidth={2}
@@ -142,6 +169,7 @@ function RealTimeChart({ historicalData, timeRange, onTimeRangeChange }) {
           <Line 
             type="monotone" 
             dataKey="humedad" 
+            yAxisId="left"
             stroke="#4ecdc4" 
             name="Humedad (%)" 
             strokeWidth={2}
@@ -150,6 +178,7 @@ function RealTimeChart({ historicalData, timeRange, onTimeRangeChange }) {
           <Line 
             type="monotone" 
             dataKey="radiacion_solar"
+            yAxisId="right"
             stroke="#ffd93d" 
             name="Radiacion solar (W/m²)"
             strokeWidth={2}
@@ -158,13 +187,21 @@ function RealTimeChart({ historicalData, timeRange, onTimeRangeChange }) {
           <Line 
             type="monotone" 
             dataKey="humedad_suelo" 
+            yAxisId="left"
             stroke="#6c5ce7" 
             name="Tension Agua Suelo (cbar)"
             strokeWidth={2}
             dot={false}
           />
         </LineChart>
-      </ResponsiveContainer>
+        </ResponsiveContainer>
+
+        <div className="chart-axis-labels chart-axis-labels-right" aria-label="Variable del eje derecho">
+          <span className="chart-axis-label" style={{ color: '#ffd93d' }}>
+            Radiación solar (W/m²)
+          </span>
+        </div>
+      </div>
     </div>
   )
 }

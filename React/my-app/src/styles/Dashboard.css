@@ -206,6 +206,45 @@
   border: 1px solid #374151;
 }
 
+.chart-with-axis-labels {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  min-width: 0;
+}
+
+.chart-with-axis-labels > .recharts-responsive-container {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.chart-axis-labels {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  padding: 1rem 0 2.25rem;
+}
+
+.chart-axis-labels-left {
+  flex-direction: row;
+  gap: 0.15rem;
+  width: 30px;
+}
+
+.chart-axis-labels-right {
+  width: 16px;
+}
+
+.chart-axis-label {
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.25;
+  white-space: nowrap;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
 .chart-header {
   display: flex;
   justify-content: space-between;
@@ -424,6 +463,19 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
+  }
+
+  .chart-axis-labels-left {
+    width: 26px;
+    gap: 0.1rem;
+  }
+
+  .chart-axis-labels-right {
+    width: 14px;
+  }
+
+  .chart-axis-label {
+    font-size: 0.72rem;
   }
   
   .metrics-grid {
