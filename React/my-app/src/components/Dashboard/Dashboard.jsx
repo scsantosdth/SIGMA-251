@@ -57,7 +57,7 @@ function Dashboard() {
       <div className="dashboard-container">
         <div className="dashboard-main">
           <div className="dashboard-header">
-            <h2>Panel de Monitoreo en Tiempo Real</h2>
+            <h2>Panel de Monitoreo</h2>
             <div className="dashboard-actions">
               <button
                 className={`xbee-connect-button ${serial.connected ? 'connected' : ''}`}
