@@ -85,7 +85,7 @@ function RealTimeChart({ historicalData, timeRange, onTimeRangeChange }) {
     return (
       <div className="chart-container">
         <div className="chart-header">
-          <h2>Métricas en Tiempo Real</h2>
+          <h2>Registro Histórico</h2>
         </div>
         <div className="no-data">
           <p>No hay datos para mostrar</p>
@@ -97,7 +97,7 @@ function RealTimeChart({ historicalData, timeRange, onTimeRangeChange }) {
   return (
     <div className="chart-container">
       <div className="chart-header">
-        <h2>Métricas en Tiempo Real</h2>
+        <h2>Registro Histórico</h2>
         <div className="time-filters">
           {timeOptions.map(option => (
             <button
