@@ -47,11 +47,14 @@ function useSensorData() {
   const [error, setError] = useState(null);
   const [offline, setOffline] = useState(!isOnline());
   const [isMeasuring, setIsMeasuring] = useState(false);
+  const [syncedHistoryDate, setSyncedHistoryDate] = useState(null);
 
   const sensorDataRef = useRef(sensorData);
   const batteryDataRef = useRef(batteryData);
   const historicalDataRef = useRef(historicalData);
   const serialConnectedRef = useRef(false);
+  const serialRef = useRef(null);
+  const syncedHistoryDateRef = useRef(null);
   const isMeasuringRef = useRef(false);
   const sdSyncPromisesRef = useRef([]);
   const cloudSyncIntervalRef = useRef(getCloudIntervalMinutes() * 60 * 1000);
@@ -228,9 +231,20 @@ function useSensorData() {
     await syncSingleSerialMeasurement(savedRecord);
   }, [applyOfflineData, syncSingleSerialMeasurement]);
 
+  const prepareSdHistoryDate = useCallback((date) => {
+    syncedHistoryDateRef.current = date;
+    setSyncedHistoryDate(null);
+  }, []);
+
   const handleSerialControlMessage = useCallback((message) => {
     if (message?.type === 'sd-record') {
       console.info('Registro SD recibido; pendiente de sincronizacion:', message.record);
+
+      const requestNextSdRecord = () => {
+        serialRef.current?.sendCommand('SYNC_NEXT').catch((commandError) => {
+          console.error('No se pudo solicitar el siguiente registro SD:', commandError);
+        });
+      };
 
       if (isOnline() && api.isAuthenticated()) {
         const syncPromise = api.postSdMeasurement({
@@ -257,6 +271,11 @@ function useSensorData() {
             (pending) => pending !== syncPromise
           );
         });
+        // La confirmacion se envia incluso si Supabase marco el registro como
+        // duplicado: ya no es necesario retransmitirlo desde la SD.
+        syncPromise.then(requestNextSdRecord, requestNextSdRecord);
+      } else {
+        requestNextSdRecord();
       }
 
       // siguiente bloque después de recibir las tres líneas esperadas.
@@ -268,21 +287,26 @@ function useSensorData() {
       Promise.allSettled(pending).then(async () => {
         if (!isOnline() || !api.isAuthenticated()) return;
 
+        const selectedDate = syncedHistoryDateRef.current;
+        if (!selectedDate) return;
+
         try {
-          const payload = await api.getHistoricalData(timeRange);
+          const payload = await api.getHistoricalDataByDate(selectedDate);
           const historical = unwrapApiData(payload) || [];
           historicalDataRef.current = historical;
           setHistoricalData(historical);
-          console.info('Grafica actualizada tras sincronizacion SD');
+          setSyncedHistoryDate(selectedDate);
+          console.info(`Grafica actualizada con los datos SD de ${selectedDate}`);
         } catch (refreshError) {
           console.error('No se pudo actualizar la grafica tras SYNC_SD:', refreshError);
         }
       });
       return;
     }
-  }, [timeRange]);
+  }, []);
 
   const serial = useXBeeSerial(handleSerialMeasurement, handleSerialControlMessage);
+  serialRef.current = serial;
 
   useEffect(() => {
     serialConnectedRef.current = serial.connected;
@@ -495,7 +519,9 @@ function useSensorData() {
 
   const changeTimeRange = (hours) => {
     setTimeRange(hours);
-    if (!serialConnectedRef.current && !offline) {
+    syncedHistoryDateRef.current = null;
+    setSyncedHistoryDate(null);
+    if (!offline) {
       loadOnlineData(hours);
     }
   };
@@ -504,6 +530,7 @@ function useSensorData() {
     sensorData,
     batteryData,
     historicalData,
+    syncedHistoryDate,
     timeRange,
     loading,
     error,
@@ -512,6 +539,7 @@ function useSensorData() {
     isMeasuring,
     startMeasurements,
     stopMeasurements,
+    prepareSdHistoryDate,
     refetch: offline ? loadLocalData : () => loadOnlineData(timeRange),
     changeTimeRange
   };

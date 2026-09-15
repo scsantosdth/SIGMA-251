@@ -13,6 +13,7 @@ function Dashboard() {
     sensorData,
     batteryData,
     historicalData,
+    syncedHistoryDate,
     timeRange,
     loading,
     error,
@@ -21,6 +22,7 @@ function Dashboard() {
     isMeasuring,
     startMeasurements,
     stopMeasurements,
+    prepareSdHistoryDate,
     changeTimeRange
   } = useSensorDataContext();
 
@@ -58,6 +60,7 @@ function Dashboard() {
     const waspmoteDate = syncDate.replaceAll('-', '').slice(2);
 
     try {
+      prepareSdHistoryDate(syncDate);
       await serial.sendCommand(`SYNC_SD:${waspmoteDate}`);
       console.info(`Comando SYNC_SD enviado para la fecha ${waspmoteDate}`);
     } catch (commandError) {
@@ -166,6 +169,7 @@ function Dashboard() {
           <div className="chart-section">
             <RealTimeChart
               historicalData={historicalData}
+              syncedHistoryDate={syncedHistoryDate}
               timeRange={timeRange}
               onTimeRangeChange={changeTimeRange}
             />

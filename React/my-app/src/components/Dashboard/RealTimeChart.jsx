@@ -10,7 +10,7 @@ const parseMeasurementTimestamp = (timestamp) => {
   return new Date(hasTimezone ? timestamp : `${timestamp}Z`)
 }
 
-function RealTimeChart({ historicalData, timeRange, onTimeRangeChange }) {
+function RealTimeChart({ historicalData, syncedHistoryDate, timeRange, onTimeRangeChange }) {
   // Opciones de tiempo
   const timeOptions = [
     { value: 1, label: '1 Hora' },
@@ -98,6 +98,11 @@ function RealTimeChart({ historicalData, timeRange, onTimeRangeChange }) {
     <div className="chart-container">
       <div className="chart-header">
         <h2>Registro Histórico</h2>
+        {syncedHistoryDate && (
+          <span className="sync-history-label">
+            Datos sincronizados: {syncedHistoryDate}
+          </span>
+        )}
         <div className="time-filters">
           {timeOptions.map(option => (
             <button

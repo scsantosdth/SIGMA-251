@@ -130,6 +130,11 @@ export const api = {
       cache: 'no-store',
     }),
 
+  getHistoricalDataByDate: async (date) =>
+    fetchWithAuth(`${API_BASE}/api/mediciones/waspmote/historical?fecha=${encodeURIComponent(date)}`, {
+      cache: 'no-store',
+    }),
+
   postWaspmoteMeasurement: async (measurementData) =>
     fetchWithAuth(`${API_BASE}/api/mediciones/waspmote`, {
       method: 'POST',

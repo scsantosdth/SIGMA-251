@@ -260,6 +260,7 @@ async def obtener_ultimas_mediciones(db: Session = Depends(get_db)):
 @router.get("/waspmote/historical")
 async def obtener_mediciones_historicas(
     horas: int = Query(24, description="Número de horas hacia atrás"),
+    fecha: str = Query(None, description="Fecha local de Colombia en formato YYYY-MM-DD"),
     sensor: str = Query(None, description="Tipo de sensor (temperatura, humedad, etc)"),
     db: Session = Depends(get_db)
 ):
@@ -267,12 +268,27 @@ async def obtener_mediciones_historicas(
     Obtiene mediciones históricas para gráficos
     """
     try:
-        # Calcular timestamp de inicio
-        start_time = datetime.now() - timedelta(hours=horas)
-        
-        query = db.query(Medicion).filter(
-            Medicion.timestamp >= start_time
-        )
+        if fecha:
+            try:
+                selected_date = datetime.strptime(fecha, "%Y-%m-%d").date()
+            except ValueError:
+                raise HTTPException(status_code=400, detail="La fecha debe tener formato YYYY-MM-DD")
+
+            colombia_timezone = timezone(timedelta(hours=-5))
+            start_time = datetime.combine(selected_date, datetime.min.time(), tzinfo=colombia_timezone)
+            start_time = start_time.astimezone(timezone.utc).replace(tzinfo=None)
+            end_time = start_time + timedelta(days=1)
+            query = db.query(Medicion).filter(
+                Medicion.timestamp >= start_time,
+                Medicion.timestamp < end_time
+            )
+        else:
+            # Calcular timestamp de inicio para los filtros normales 1/6/24 h.
+            start_time = datetime.now() - timedelta(hours=horas)
+            end_time = None
+            query = db.query(Medicion).filter(
+                Medicion.timestamp >= start_time
+            )
         
         # Filtrar por sensor si se especifica
         if sensor and sensor in SENSOR_MAPPING:
@@ -297,8 +313,10 @@ async def obtener_mediciones_historicas(
             "data": historical_data,
             "filtros": {
                 "horas": horas,
+                "fecha": fecha,
                 "sensor": sensor,
-                "desde": start_time.isoformat()
+                "desde": start_time.isoformat(),
+                "hasta": end_time.isoformat() if end_time else None
             }
         }
         
