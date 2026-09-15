@@ -737,6 +737,25 @@
   box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
 
+.manual-measure-button.active {
+  background: #991b1b;
+}
+
+.manual-measure-button.active:hover {
+  background: #b91c1c;
+}
+
+.manual-measure-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.manual-measure-button:disabled:hover {
+  transform: none;
+  background: #1e3a8a;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
 .manual-measure-button:active {
   transform: translateY(1px);
 }

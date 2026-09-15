@@ -46,11 +46,13 @@ function useSensorData() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [offline, setOffline] = useState(!isOnline());
+  const [isMeasuring, setIsMeasuring] = useState(false);
 
   const sensorDataRef = useRef(sensorData);
   const batteryDataRef = useRef(batteryData);
   const historicalDataRef = useRef(historicalData);
   const serialConnectedRef = useRef(false);
+  const isMeasuringRef = useRef(false);
   const sdSyncPromisesRef = useRef([]);
   const cloudSyncIntervalRef = useRef(getCloudIntervalMinutes() * 60 * 1000);
   const lastCloudSyncScheduledRef = useRef(getLastCloudSampleAt());
@@ -179,6 +181,11 @@ function useSensorData() {
   }, []);
 
   const handleSerialMeasurement = useCallback(async (measurement) => {
+    // El firmware transmite periodicamente mientras el XBee esta conectado.
+    // La toma de medidas en la interfaz determina cuando esas tramas se
+    // procesan, se muestran y se guardan.
+    if (!isMeasuringRef.current) return;
+
     const timestamp = new Date().toISOString();
     const now = Date.now();
     const shouldSyncToCloud = now - lastCloudSyncScheduledRef.current >= cloudSyncIntervalRef.current;
@@ -279,7 +286,27 @@ function useSensorData() {
 
   useEffect(() => {
     serialConnectedRef.current = serial.connected;
+    if (!serial.connected) {
+      isMeasuringRef.current = false;
+      setIsMeasuring(false);
+    }
   }, [serial.connected]);
+
+  const startMeasurements = useCallback(() => {
+    if (!serialConnectedRef.current) {
+      setError('Conecta el XBee antes de iniciar las medidas');
+      return;
+    }
+
+    isMeasuringRef.current = true;
+    setIsMeasuring(true);
+    setError(null);
+  }, []);
+
+  const stopMeasurements = useCallback(() => {
+    isMeasuringRef.current = false;
+    setIsMeasuring(false);
+  }, []);
 
   const cacheOnlineMeasurement = useCallback((measurements, battery) => {
     if (!measurements || serialConnectedRef.current) return;
@@ -482,6 +509,9 @@ function useSensorData() {
     error,
     offline,
     serial,
+    isMeasuring,
+    startMeasurements,
+    stopMeasurements,
     refetch: offline ? loadLocalData : () => loadOnlineData(timeRange),
     changeTimeRange
   };

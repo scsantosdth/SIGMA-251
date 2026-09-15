@@ -16,6 +16,9 @@ function Dashboard() {
     error,
     offline,
     serial,
+    isMeasuring,
+    startMeasurements,
+    stopMeasurements,
     changeTimeRange
   } = useSensorDataContext();
 
@@ -34,6 +37,7 @@ function Dashboard() {
     : serial.connecting
       ? 'Conectando...'
       : 'Conectar XBee';
+  const measurementsLabel = isMeasuring ? 'Detener medidas' : 'Iniciar medidas';
 
   const handleSerialClick = () => {
     if (serial.connected) {
@@ -52,6 +56,15 @@ function Dashboard() {
     }
   };
 
+  const handleMeasurementsClick = () => {
+    if (isMeasuring) {
+      stopMeasurements();
+      return;
+    }
+
+    startMeasurements();
+  };
+
   return (
     <MainLayout onLogout={handleLogout} batteryData={batteryValue}>
       <div className="dashboard-container">
@@ -66,6 +79,16 @@ function Dashboard() {
                 title={!serial.supported ? 'Disponible en Chrome o Edge con HTTPS/local' : 'Abrir selector de puerto serial'}
               >
                 {serialLabel}
+              </button>
+              <button
+                className={`manual-measure-button ${isMeasuring ? 'active' : ''}`}
+                onClick={handleMeasurementsClick}
+                disabled={!serial.connected}
+                title={isMeasuring
+                  ? 'Detener el procesamiento de mediciones en tiempo real'
+                  : 'Mostrar y guardar las mediciones recibidas del XBee'}
+              >
+                {measurementsLabel}
               </button>
               <button
                 className="manual-measure-button sync-sd-button"
