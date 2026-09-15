@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import MainLayout from '../Layout/MainLayout.jsx';
 import MetricCard from './MetricCard.jsx';
 import StatusSidebar from '../Layout/StatusSidebar.jsx';
@@ -7,6 +8,7 @@ import { api } from '../../services/api.jsx';
 import '../../styles/index.css';
 
 function Dashboard() {
+  const [syncDate, setSyncDate] = useState('');
   const {
     sensorData,
     batteryData,
@@ -51,10 +53,14 @@ function Dashboard() {
   };
 
   const handleSyncClick = async () => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(syncDate)) return;
+
+    const waspmoteDate = syncDate.replaceAll('-', '').slice(2);
+
     try {
-      await serial.sendCommand('SYNC_SD');
+      await serial.sendCommand(`SYNC_SD:${waspmoteDate}`);
     } catch (commandError) {
-      console.error('Error enviando SYNC_SD:', commandError);
+      console.error('Error enviando SYNC_SD con fecha:', commandError);
     }
   };
 
@@ -96,10 +102,20 @@ function Dashboard() {
               >
                 {measurementsLabel}
               </button>
+              <label className="sync-date-control">
+                <span>Fecha SD</span>
+                <input
+                  type="date"
+                  value={syncDate}
+                  onChange={(event) => setSyncDate(event.target.value)}
+                  disabled={isMeasuring}
+                  aria-label="Fecha que se sincronizara desde la tarjeta SD"
+                />
+              </label>
               <button
                 className="manual-measure-button sync-sd-button"
                 onClick={handleSyncClick}
-                disabled={!serial.connected || isMeasuring}
+                disabled={!serial.connected || isMeasuring || !syncDate}
                 title={isMeasuring
                   ? 'Detén las medidas antes de sincronizar la memoria SD'
                   : 'Sincronizar registros conservados en la memoria SD'}
