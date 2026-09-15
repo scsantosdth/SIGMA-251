@@ -36,8 +36,11 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: flex-end;
+  flex: 0 0 auto;
+  overflow-x: auto;
+  padding-bottom: 2px;
 }
 
 .xbee-status {
@@ -75,6 +78,9 @@
 }
 
 .xbee-connect-button {
+  box-sizing: border-box;
+  flex: 0 0 170px;
+  width: 170px;
   min-height: 38px;
   border: 1px solid rgba(95, 194, 201, 0.4);
   background: #0f766e;
@@ -84,7 +90,21 @@
   font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
   transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.dashboard-actions .manual-measure-button {
+  box-sizing: border-box;
+  flex: 0 0 145px;
+  width: 145px;
+  margin-right: 0;
+  white-space: nowrap;
+}
+
+.dashboard-actions .sync-sd-button {
+  flex-basis: 140px;
+  width: 140px;
 }
 
 .xbee-connect-button:hover:not(:disabled) {
@@ -464,6 +484,7 @@
   .dashboard-actions {
     width: 100%;
     justify-content: flex-start;
+    max-width: 100%;
   }
 
   .chart-header {

@@ -40,6 +40,8 @@ function Dashboard() {
   const measurementsLabel = isMeasuring ? 'Detener medidas' : 'Iniciar medidas';
 
   const handleSerialClick = () => {
+    if (isMeasuring) return;
+
     if (serial.connected) {
       serial.disconnect();
       return;
@@ -75,8 +77,12 @@ function Dashboard() {
               <button
                 className={`xbee-connect-button ${serial.connected ? 'connected' : ''}`}
                 onClick={handleSerialClick}
-                disabled={!serial.supported || serial.connecting}
-                title={!serial.supported ? 'Disponible en Chrome o Edge con HTTPS/local' : 'Abrir selector de puerto serial'}
+                disabled={!serial.supported || serial.connecting || isMeasuring}
+                title={!serial.supported
+                  ? 'Disponible en Chrome o Edge con HTTPS/local'
+                  : isMeasuring
+                    ? 'Detén las medidas antes de desconectar el XBee'
+                    : 'Abrir selector de puerto serial'}
               >
                 {serialLabel}
               </button>
@@ -93,8 +99,10 @@ function Dashboard() {
               <button
                 className="manual-measure-button sync-sd-button"
                 onClick={handleSyncClick}
-                disabled={!serial.connected}
-                title="Sincronizar registros conservados en la memoria SD"
+                disabled={!serial.connected || isMeasuring}
+                title={isMeasuring
+                  ? 'Detén las medidas antes de sincronizar la memoria SD'
+                  : 'Sincronizar registros conservados en la memoria SD'}
               >
                 Sincronizar SD
               </button>
