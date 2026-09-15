@@ -59,6 +59,7 @@ function Dashboard() {
 
     try {
       await serial.sendCommand(`SYNC_SD:${waspmoteDate}`);
+      console.info(`Comando SYNC_SD enviado para la fecha ${waspmoteDate}`);
     } catch (commandError) {
       console.error('Error enviando SYNC_SD con fecha:', commandError);
     }
