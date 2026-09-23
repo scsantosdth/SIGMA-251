@@ -148,7 +148,7 @@ function SdObservationPanel() {
       <div className="observation-notice">
         <strong>Modo solo lectura:</strong> consulta los registros subidos a la base de datos sin
         modificar ni eliminar nada. Para subir los registros de la tarjeta SD usa el botón
-        “Sincronizar SD” del panel superior.
+        “Sincronizar SD” de la barra lateral derecha.
       </div>
 
       <div className="observation-controls">

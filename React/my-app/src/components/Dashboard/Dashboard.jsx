@@ -104,28 +104,6 @@ function Dashboard() {
               >
                 {measurementsLabel}
               </button>
-              <label className="sync-date-control">
-                <span>Fecha SD</span>
-                <input
-                  type="date"
-                  value={syncDate}
-                  onChange={(event) => setSyncDate(event.target.value)}
-                  disabled={isMeasuring || isSyncingSd}
-                  aria-label="Fecha que se sincronizara desde la tarjeta SD"
-                />
-              </label>
-              <button
-                className="manual-measure-button sync-sd-button"
-                onClick={handleSyncClick}
-                disabled={!serial.connected || isMeasuring || isSyncingSd || !syncDate}
-                title={isSyncingSd
-                  ? 'Sincronización de la SD en curso…'
-                  : isMeasuring
-                    ? 'Detén las medidas antes de sincronizar la memoria SD'
-                    : 'Sincronizar registros conservados en la memoria SD'}
-              >
-                {isSyncingSd ? 'Sincronizando…' : 'Sincronizar SD'}
-              </button>
             </div>
           </div>
 
@@ -181,7 +159,15 @@ function Dashboard() {
         </div>
 
         <div className="dashboard-sidebar">
-          <StatusSidebar batteryData={batteryValue} />
+          <StatusSidebar
+            batteryData={batteryValue}
+            syncDate={syncDate}
+            onSyncDateChange={setSyncDate}
+            onSyncClick={handleSyncClick}
+            isMeasuring={isMeasuring}
+            isSyncingSd={isSyncingSd}
+            serialConnected={serial.connected}
+          />
         </div>
       </div>
     </MainLayout>
