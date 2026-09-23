@@ -1,21 +1,29 @@
+import { useState } from 'react';
 import MainLayout from '../Layout/MainLayout.jsx';
 import MetricCard from './MetricCard.jsx';
 import StatusSidebar from '../Layout/StatusSidebar.jsx';
 import RealTimeChart from './RealTimeChart.jsx';
+import SdObservationPanel from './SdObservationPanel.jsx';
 import { useSensorDataContext } from '../../hooks/useSensorData.jsx';
 import { api } from '../../services/api.jsx';
 import '../../styles/index.css';
 
 function Dashboard() {
+  const [syncDate, setSyncDate] = useState('');
   const {
     sensorData,
     batteryData,
     historicalData,
+    syncedHistoryDate,
     timeRange,
     loading,
     error,
     offline,
     serial,
+    isMeasuring,
+    startMeasurements,
+    stopMeasurements,
+    prepareSdHistoryDate,
     changeTimeRange
   } = useSensorDataContext();
 
@@ -34,8 +42,11 @@ function Dashboard() {
     : serial.connecting
       ? 'Conectando...'
       : 'Conectar XBee';
+  const measurementsLabel = isMeasuring ? 'Detener medidas' : 'Iniciar medidas';
 
   const handleSerialClick = () => {
+    if (isMeasuring) return;
+
     if (serial.connected) {
       serial.disconnect();
       return;
@@ -45,11 +56,26 @@ function Dashboard() {
   };
 
   const handleSyncClick = async () => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(syncDate)) return;
+
+    const waspmoteDate = syncDate.replaceAll('-', '').slice(2);
+
     try {
-      await serial.sendCommand('SYNC_SD');
+      prepareSdHistoryDate(syncDate);
+      await serial.sendCommand(`SYNC_SD:${waspmoteDate}`);
+      console.info(`Comando SYNC_SD enviado para la fecha ${waspmoteDate}`);
     } catch (commandError) {
-      console.error('Error enviando SYNC_SD:', commandError);
+      console.error('Error enviando SYNC_SD con fecha:', commandError);
     }
+  };
+
+  const handleMeasurementsClick = () => {
+    if (isMeasuring) {
+      stopMeasurements();
+      return;
+    }
+
+    startMeasurements();
   };
 
   return (
@@ -62,16 +88,42 @@ function Dashboard() {
               <button
                 className={`xbee-connect-button ${serial.connected ? 'connected' : ''}`}
                 onClick={handleSerialClick}
-                disabled={!serial.supported || serial.connecting}
-                title={!serial.supported ? 'Disponible en Chrome o Edge con HTTPS/local' : 'Abrir selector de puerto serial'}
+                disabled={!serial.supported || serial.connecting || isMeasuring}
+                title={!serial.supported
+                  ? 'Disponible en Chrome o Edge con HTTPS/local'
+                  : isMeasuring
+                    ? 'Detén las medidas antes de desconectar el XBee'
+                    : 'Abrir selector de puerto serial'}
               >
                 {serialLabel}
               </button>
               <button
+                className={`manual-measure-button ${isMeasuring ? 'active' : ''}`}
+                onClick={handleMeasurementsClick}
+                disabled={!serial.connected}
+                title={isMeasuring
+                  ? 'Detener el procesamiento de mediciones en tiempo real'
+                  : 'Mostrar y guardar las mediciones recibidas del XBee'}
+              >
+                {measurementsLabel}
+              </button>
+              <label className="sync-date-control">
+                <span>Fecha SD</span>
+                <input
+                  type="date"
+                  value={syncDate}
+                  onChange={(event) => setSyncDate(event.target.value)}
+                  disabled={isMeasuring}
+                  aria-label="Fecha que se sincronizara desde la tarjeta SD"
+                />
+              </label>
+              <button
                 className="manual-measure-button sync-sd-button"
                 onClick={handleSyncClick}
-                disabled={!serial.connected}
-                title="Sincronizar registros conservados en la memoria SD"
+                disabled={!serial.connected || isMeasuring || !syncDate}
+                title={isMeasuring
+                  ? 'Detén las medidas antes de sincronizar la memoria SD'
+                  : 'Sincronizar registros conservados en la memoria SD'}
               >
                 Sincronizar SD
               </button>
@@ -118,9 +170,14 @@ function Dashboard() {
           <div className="chart-section">
             <RealTimeChart
               historicalData={historicalData}
+              syncedHistoryDate={syncedHistoryDate}
               timeRange={timeRange}
               onTimeRangeChange={changeTimeRange}
             />
+          </div>
+
+          <div className="chart-section">
+            <SdObservationPanel />
           </div>
         </div>
 

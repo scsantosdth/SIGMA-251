@@ -90,9 +90,35 @@ async def recibir_mediciones_waspmote(
     
     # Guardar mediciones automáticamente
     try:
+        if offline_sync:
+            # En modo sincronizacion se aplica la misma deduplicacion que en
+            # /waspmote/sd para garantizar que solo se inserte lo faltante y
+            # nunca se sobrescriban ni dupliquen registros ya almacenados.
+            intervalo_segundos = intervalo_minutos * 60
+            epoch = datetime(1970, 1, 1)
+            bucket_number = int((timestamp_medicion - epoch).total_seconds() // intervalo_segundos)
+            bucket_start = epoch + timedelta(seconds=bucket_number * intervalo_segundos)
+            bucket_end = bucket_start + timedelta(seconds=intervalo_segundos)
+
         for tipo_sensor, valor in datos.items():
             if tipo_sensor in SENSOR_MAPPING and valor is not None:
                 sensor_id = SENSOR_MAPPING[tipo_sensor]
+
+                ya_existe = db.query(Medicion).filter(
+                    Medicion.sensor_id == sensor_id,
+                    Medicion.timestamp == timestamp_medicion
+                ).first()
+
+                if ya_existe is None and offline_sync:
+                    ya_existe = db.query(Medicion).filter(
+                        Medicion.sensor_id == sensor_id,
+                        Medicion.timestamp >= bucket_start,
+                        Medicion.timestamp < bucket_end
+                    ).first()
+
+                if ya_existe:
+                    continue
+
                 medicion = Medicion(
                     sensor_id=sensor_id,
                     valor=float(valor),
@@ -224,6 +250,134 @@ async def guardar_medicion_manual(db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error al guardar medición manual: {str(e)}")
 
+@router.get("/observar")
+async def observar_mediciones(
+    fecha: str = Query(None, description="Fecha local de Colombia en formato YYYY-MM-DD"),
+    hora: int = Query(None, ge=0, le=23, description="Hora local de Colombia (0-23). Requiere el parámetro fecha."),
+    sensor: str = Query(None, description="Tipo de sensor (temperatura, humedad, radiacion_solar, humedad_suelo)"),
+    desde: str = Query(None, description="Timestamps ISO iguales o posteriores a este valor"),
+    hasta: str = Query(None, description="Timestamps ISO anteriores a este valor"),
+    limite: int = Query(5000, ge=1, le=50000, description="Cantidad maxima de registros a devolver"),
+    offset: int = Query(0, ge=0, description="Desplazamiento para paginacion"),
+    db: Session = Depends(get_db)
+):
+    """
+    Solo LECTURA: devuelve mediciones sin crear, modificar ni eliminar nada.
+    Permite observar todo el historico de la base de datos con filtros y
+    paginacion. No ejecuta ninguna instruccion de escritura.
+    """
+    try:
+        query = db.query(Medicion)
+        total_query = db.query(func.count(Medicion.id))
+
+        if desde:
+            start_ts = parse_timestamp(desde)
+            if start_ts is None:
+                raise HTTPException(status_code=400, detail="'desde' debe ser una fecha ISO valida")
+            query = query.filter(Medicion.timestamp >= start_ts)
+            total_query = total_query.filter(Medicion.timestamp >= start_ts)
+
+        if hasta:
+            end_ts = parse_timestamp(hasta)
+            if end_ts is None:
+                raise HTTPException(status_code=400, detail="'hasta' debe ser una fecha ISO valida")
+            query = query.filter(Medicion.timestamp < end_ts)
+            total_query = total_query.filter(Medicion.timestamp < end_ts)
+
+        if fecha:
+            try:
+                selected_date = datetime.strptime(fecha, "%Y-%m-%d").date()
+            except ValueError:
+                raise HTTPException(status_code=400, detail="La fecha debe tener formato YYYY-MM-DD")
+
+            colombia_timezone = timezone(timedelta(hours=-5))
+            start_time = datetime.combine(selected_date, datetime.min.time(), tzinfo=colombia_timezone)
+            start_time = start_time.astimezone(timezone.utc).replace(tzinfo=None)
+            end_time = start_time + timedelta(days=1)
+
+            if hora is not None:
+                start_time = start_time + timedelta(hours=hora)
+                end_time = start_time + timedelta(hours=1)
+
+            query = query.filter(
+                Medicion.timestamp >= start_time,
+                Medicion.timestamp < end_time
+            )
+            total_query = total_query.filter(
+                Medicion.timestamp >= start_time,
+                Medicion.timestamp < end_time
+            )
+
+        if sensor:
+            if sensor not in SENSOR_MAPPING:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Sensor '{sensor}' no válido. Opciones: {', '.join(SENSOR_MAPPING.keys())}"
+                )
+            query = query.filter(Medicion.sensor_id == SENSOR_MAPPING[sensor])
+            total_query = total_query.filter(Medicion.sensor_id == SENSOR_MAPPING[sensor])
+
+        total = total_query.scalar() or 0
+        mediciones = (
+            query.order_by(Medicion.timestamp.asc(), Medicion.id.asc())
+            .offset(offset)
+            .limit(limite)
+            .all()
+        )
+
+        data = [
+            {
+                "sensor": SENSOR_NAMES.get(m.sensor_id, f"sensor_{m.sensor_id}"),
+                "sensor_id": m.sensor_id,
+                "valor": m.valor,
+                "calidad": m.calidad,
+                "timestamp": m.timestamp.isoformat() if m.timestamp else None,
+            }
+            for m in mediciones
+        ]
+
+        return {
+            "status": "success",
+            "data": data,
+            "total": total,
+            "offset": offset,
+            "limite": limite,
+            "filtros": {
+                "fecha": fecha,
+                "hora": hora,
+                "sensor": sensor,
+                "desde": desde,
+                "hasta": hasta,
+            },
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Error obteniendo mediciones para observacion: {e}")
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+
+@router.get("/observar/rango")
+async def observar_rango_mediciones(db: Session = Depends(get_db)):
+    """
+    Solo LECTURA: devuelve el periodo (min/max timestamp) cubierto por las
+    mediciones en la base de datos, para saber que fechas existen.
+    No ejecuta ninguna instruccion de escritura.
+    """
+    try:
+        min_ts = db.query(func.min(Medicion.timestamp)).scalar()
+        max_ts = db.query(func.max(Medicion.timestamp)).scalar()
+        total = db.query(func.count(Medicion.id)).scalar() or 0
+
+        return {
+            "status": "success",
+            "total": total,
+            "desde": min_ts.isoformat() if min_ts else None,
+            "hasta": max_ts.isoformat() if max_ts else None,
+        }
+    except Exception as e:
+        print(f"❌ Error obteniendo rango de mediciones: {e}")
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+
 @router.get("/waspmote/latest")
 async def obtener_ultimas_mediciones(db: Session = Depends(get_db)):
     """
@@ -260,22 +414,58 @@ async def obtener_ultimas_mediciones(db: Session = Depends(get_db)):
 @router.get("/waspmote/historical")
 async def obtener_mediciones_historicas(
     horas: int = Query(24, description="Número de horas hacia atrás"),
+    fecha: str = Query(None, description="Fecha local de Colombia en formato YYYY-MM-DD"),
+    hora: int = Query(None, ge=0, le=23, description="Hora local de Colombia (0-23). Requiere el parámetro fecha."),
     sensor: str = Query(None, description="Tipo de sensor (temperatura, humedad, etc)"),
     db: Session = Depends(get_db)
 ):
     """
-    Obtiene mediciones históricas para gráficos
+    Obtiene mediciones históricas para gráficos.
+    - Con 'fecha' consulta un día completo (zona horaria Colombia UTC-5).
+    - Con 'fecha' + 'hora' consulta únicamente esa hora del día.
+    - Con 'sensor' filtra por una sola variable.
     """
     try:
-        # Calcular timestamp de inicio
-        start_time = datetime.now() - timedelta(hours=horas)
-        
-        query = db.query(Medicion).filter(
-            Medicion.timestamp >= start_time
-        )
+        if fecha:
+            try:
+                selected_date = datetime.strptime(fecha, "%Y-%m-%d").date()
+            except ValueError:
+                raise HTTPException(status_code=400, detail="La fecha debe tener formato YYYY-MM-DD")
+
+            colombia_timezone = timezone(timedelta(hours=-5))
+            start_time = datetime.combine(selected_date, datetime.min.time(), tzinfo=colombia_timezone)
+            start_time = start_time.astimezone(timezone.utc).replace(tzinfo=None)
+            end_time = start_time + timedelta(days=1)
+
+            if hora is not None:
+                start_time = start_time + timedelta(hours=hora)
+                end_time = start_time + timedelta(hours=1)
+
+            query = db.query(Medicion).filter(
+                Medicion.timestamp >= start_time,
+                Medicion.timestamp < end_time
+            )
+        else:
+            if hora is not None:
+                raise HTTPException(
+                    status_code=400,
+                    detail="El parámetro hora requiere especificar una fecha (fecha=YYYY-MM-DD)"
+                )
+
+            # Calcular timestamp de inicio para los filtros normales 1/6/24 h.
+            start_time = datetime.now() - timedelta(hours=horas)
+            end_time = None
+            query = db.query(Medicion).filter(
+                Medicion.timestamp >= start_time
+            )
         
         # Filtrar por sensor si se especifica
-        if sensor and sensor in SENSOR_MAPPING:
+        if sensor:
+            if sensor not in SENSOR_MAPPING:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Sensor '{sensor}' no válido. Opciones: {', '.join(SENSOR_MAPPING.keys())}"
+                )
             sensor_id = SENSOR_MAPPING[sensor]
             query = query.filter(Medicion.sensor_id == sensor_id)
         
@@ -297,8 +487,11 @@ async def obtener_mediciones_historicas(
             "data": historical_data,
             "filtros": {
                 "horas": horas,
+                "fecha": fecha,
+                "hora": hora,
                 "sensor": sensor,
-                "desde": start_time.isoformat()
+                "desde": start_time.isoformat(),
+                "hasta": end_time.isoformat() if end_time else None
             }
         }
         

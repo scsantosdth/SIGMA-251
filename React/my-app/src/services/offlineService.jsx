@@ -2,6 +2,7 @@ import localForage from 'localforage';
 
 export const MAX_OFFLINE_MEDICIONES = 1000;
 const STORAGE_EVENT = 'sigma-offline-storage-updated';
+const SD_OBSERVATION_KEY = 'sigma-sd-observation';
 
 localForage.config({
   name: 'SigmaOfflineDB',
@@ -39,11 +40,20 @@ export const saveMedicionOffline = async (medicion, options = {}) => {
       mediciones.push(record);
     }
 
-    if (mediciones.length > MAX_OFFLINE_MEDICIONES) {
-      mediciones.splice(0, mediciones.length - MAX_OFFLINE_MEDICIONES);
+    let medicionesPersistir = mediciones;
+    if (medicionesPersistir.length > MAX_OFFLINE_MEDICIONES) {
+      // Solo se descartan del cache local las mediciones que ya fueron
+      // sincronizadas con la nube. Las pendientes nunca se borran para no
+      // perder datos capturados sin conexion.
+      const excedente = medicionesPersistir.length - MAX_OFFLINE_MEDICIONES;
+      const yaSincronizadas = medicionesPersistir.filter((item) => item.synced === true);
+      if (yaSincronizadas.length >= excedente) {
+        const idsAEliminar = new Set(yaSincronizadas.slice(0, excedente).map((item) => item.id));
+        medicionesPersistir = medicionesPersistir.filter((item) => !idsAEliminar.has(item.id));
+      }
     }
 
-    await localForage.setItem('mediciones', mediciones);
+    await localForage.setItem('mediciones', medicionesPersistir);
     emitStorageUpdate();
     return record;
   } catch (error) {
@@ -90,6 +100,40 @@ export const getOfflineStorageSummary = async () => {
     max: MAX_OFFLINE_MEDICIONES,
     percentage: (pending / MAX_OFFLINE_MEDICIONES) * 100,
   };
+};
+
+export const saveSdObservation = async (record) => {
+  try {
+    const records = (await localForage.getItem(SD_OBSERVATION_KEY)) || [];
+    const key = record?.timestamp || '';
+    const alreadyStored = records.some((item) => item.key === key || item.timestamp === key);
+    if (alreadyStored) return false;
+    records.push({ ...record, key, source: 'sd' });
+    await localForage.setItem(SD_OBSERVATION_KEY, records);
+    return true;
+  } catch (error) {
+    console.error('Error guardando registro SD de observacion:', error);
+    return false;
+  }
+};
+
+export const getSdObservationRecords = async () => {
+  try {
+    return (await localForage.getItem(SD_OBSERVATION_KEY)) || [];
+  } catch (error) {
+    console.error('Error leyendo observacion SD:', error);
+    return [];
+  }
+};
+
+export const clearSdObservationRecords = async () => {
+  try {
+    await localForage.setItem(SD_OBSERVATION_KEY, []);
+    return true;
+  } catch (error) {
+    console.error('Error limpiando observacion SD:', error);
+    return false;
+  }
 };
 
 export const syncOfflineMediciones = async (api) => {

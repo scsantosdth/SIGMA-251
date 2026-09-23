@@ -130,6 +130,46 @@ export const api = {
       cache: 'no-store',
     }),
 
+  getHistoricalDataByDate: async (date) =>
+    fetchWithAuth(`${API_BASE}/api/mediciones/waspmote/historical?fecha=${encodeURIComponent(date)}`, {
+      cache: 'no-store',
+    }),
+
+  getHistoricalDataByFilters: async ({ fecha, hora, sensor } = {}) => {
+    const params = new URLSearchParams();
+    if (fecha) params.set('fecha', fecha);
+    if (hora !== undefined && hora !== null && hora !== '') params.set('hora', String(hora));
+    if (sensor) params.set('sensor', sensor);
+
+    const query = params.toString();
+    return fetchWithAuth(
+      `${API_BASE}/api/mediciones/waspmote/historical${query ? `?${query}` : ''}`,
+      { cache: 'no-store' }
+    );
+  },
+
+  getObservacionMediciones: async ({ fecha, hora, sensor, desde, hasta, limite = 5000, offset = 0 } = {}) => {
+    const params = new URLSearchParams();
+    if (fecha) params.set('fecha', fecha);
+    if (hora !== undefined && hora !== null && hora !== '') params.set('hora', String(hora));
+    if (sensor) params.set('sensor', sensor);
+    if (desde) params.set('desde', desde);
+    if (hasta) params.set('hasta', hasta);
+    if (limite) params.set('limite', String(limite));
+    if (offset) params.set('offset', String(offset));
+
+    const query = params.toString();
+    return fetchWithAuth(
+      `${API_BASE}/api/mediciones/observar${query ? `?${query}` : ''}`,
+      { cache: 'no-store' }
+    );
+  },
+
+  getObservacionRango: async () =>
+    fetchWithAuth(`${API_BASE}/api/mediciones/observar/rango`, {
+      cache: 'no-store',
+    }),
+
   postWaspmoteMeasurement: async (measurementData) =>
     fetchWithAuth(`${API_BASE}/api/mediciones/waspmote`, {
       method: 'POST',

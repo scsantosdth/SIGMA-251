@@ -6,7 +6,10 @@ import {
   markMedicionSynced,
   syncOfflineMediciones,
   isOnline,
-  onConnectivityChange
+  onConnectivityChange,
+  saveSdObservation,
+  getSdObservationRecords,
+  clearSdObservationRecords
 } from '../services/offlineService';
 import { useXBeeSerial } from './useXBeeSerial.jsx';
 
@@ -46,14 +49,24 @@ function useSensorData() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [offline, setOffline] = useState(!isOnline());
+  const [isMeasuring, setIsMeasuring] = useState(false);
+  const [syncedHistoryDate, setSyncedHistoryDate] = useState(null);
+  const [observationActive, setObservationActive] = useState(false);
+  const [sdObservationRecords, setSdObservationRecords] = useState([]);
 
   const sensorDataRef = useRef(sensorData);
   const batteryDataRef = useRef(batteryData);
   const historicalDataRef = useRef(historicalData);
   const serialConnectedRef = useRef(false);
+  const serialRef = useRef(null);
+  const syncedHistoryDateRef = useRef(null);
+  const isMeasuringRef = useRef(false);
   const sdSyncPromisesRef = useRef([]);
   const cloudSyncIntervalRef = useRef(getCloudIntervalMinutes() * 60 * 1000);
   const lastCloudSyncScheduledRef = useRef(getLastCloudSampleAt());
+  const observationModeRef = useRef(false);
+  const sdObservationRecordsRef = useRef([]);
+  const observationDedupKeysRef = useRef(new Set());
 
   useEffect(() => {
     sensorDataRef.current = sensorData;
@@ -152,13 +165,21 @@ function useSensorData() {
     if (!isOnline() || !api.isAuthenticated()) return false;
 
     try {
-      await api.postWaspmoteMeasurement({
+      const result = await api.postWaspmoteMeasurement({
         temperatura: record.temperatura,
         humedad: record.humedad,
         radiacion_solar: record.radiacion_solar,
         humedad_suelo: record.humedad_suelo,
         timestamp: record.timestamp,
       });
+
+      // Si el servidor responde "skipped" la muestra NO se guardo en la nube.
+      // No se marca como sincronizada: queda pendiente y se reintenta en la
+      // siguiente conexion con offline_sync=true (que si inserta lo faltante).
+      if (result?.status !== 'success') {
+        console.warn('Servidor no guardo la muestra (skipped); queda pendiente:', result);
+        return false;
+      }
 
       if (record.bateria !== undefined && record.bateria !== null) {
         await api.postWaspmoteBattery({
@@ -179,6 +200,11 @@ function useSensorData() {
   }, []);
 
   const handleSerialMeasurement = useCallback(async (measurement) => {
+    // El firmware transmite periodicamente mientras el XBee esta conectado.
+    // La toma de medidas en la interfaz determina cuando esas tramas se
+    // procesan, se muestran y se guardan.
+    if (!isMeasuringRef.current) return;
+
     const timestamp = new Date().toISOString();
     const now = Date.now();
     const shouldSyncToCloud = now - lastCloudSyncScheduledRef.current >= cloudSyncIntervalRef.current;
@@ -221,22 +247,120 @@ function useSensorData() {
     await syncSingleSerialMeasurement(savedRecord);
   }, [applyOfflineData, syncSingleSerialMeasurement]);
 
+  const appendObservationRecord = useCallback(async (record) => {
+    const key = record?.timestamp || '';
+    if (!key || observationDedupKeysRef.current.has(key)) return;
+
+    observationDedupKeysRef.current.add(key);
+    const fullRecord = {
+      ...record,
+      id: record.id || `sd-${key}`,
+      key,
+      source: 'sd',
+      synced: true,
+      cloudSync: false,
+    };
+
+    sdObservationRecordsRef.current = [...sdObservationRecordsRef.current, fullRecord];
+    setSdObservationRecords(sdObservationRecordsRef.current);
+    // Se guarda en el navegador (IndexedDB) para poder revisarla despues SIN
+    // enviarla nunca a la nube: cloudSync:false la excluye de la cola de sync.
+    await saveSdObservation(fullRecord);
+  }, []);
+
+  const loadPersistedObservation = useCallback(async () => {
+    try {
+      const persisted = await getSdObservationRecords();
+      if (Array.isArray(persisted) && persisted.length > 0) {
+        persisted.forEach((record) => {
+          observationDedupKeysRef.current.add(record.key || record.timestamp || '');
+        });
+        sdObservationRecordsRef.current = persisted;
+        setSdObservationRecords(persisted);
+      }
+    } catch (error) {
+      console.error('Error cargando observacion SD persistida:', error);
+    }
+  }, []);
+
+  const startSdObservation = useCallback(() => {
+    if (!serialConnectedRef.current) {
+      setError('Conecta el XBee antes de leer la SD');
+      return false;
+    }
+
+    observationModeRef.current = true;
+    setObservationActive(true);
+    setError(null);
+
+    // Solo lectura: se pide toda la SD y los registros se recopilan
+    // localmente sin escribir en la base de datos de la nube.
+    serialRef.current?.sendCommand('SYNC_SD').catch((commandError) => {
+      console.error('Error enviando SYNC_SD para observacion:', commandError);
+      observationModeRef.current = false;
+      setObservationActive(false);
+    });
+    return true;
+  }, []);
+
+  const stopSdObservation = useCallback(() => {
+    observationModeRef.current = false;
+    setObservationActive(false);
+  }, []);
+
+  const clearSdObservation = useCallback(async () => {
+    observationModeRef.current = false;
+    setObservationActive(false);
+    observationDedupKeysRef.current.clear();
+    sdObservationRecordsRef.current = [];
+    setSdObservationRecords([]);
+    await clearSdObservationRecords();
+  }, []);
+
+  const prepareSdHistoryDate = useCallback((date) => {
+    syncedHistoryDateRef.current = date;
+    setSyncedHistoryDate(null);
+  }, []);
+
   const handleSerialControlMessage = useCallback((message) => {
     if (message?.type === 'sd-record') {
+      // MODALIDAD OBSERVACION (solo lectura): los registros de la SD se
+      // recopilan localmente y NUNCA se envian a la base de datos.
+      if (observationModeRef.current) {
+        appendObservationRecord(message.record);
+        return;
+      }
+
       console.info('Registro SD recibido; pendiente de sincronizacion:', message.record);
+
+      const requestNextSdRecord = () => {
+        serialRef.current?.sendCommand('SYNC_NEXT').catch((commandError) => {
+          console.error('No se pudo solicitar el siguiente registro SD:', commandError);
+        });
+      };
+
+      // El registro SD lleva un id estable por su timestamp para no duplicarse
+      // en la cola offline si esta conexion falla y se reintenta.
+      const pendingRecord = {
+        ...message.record,
+        id: message.record.id || `sd-${message.record.timestamp || Date.now()}`,
+        cloudSync: true,
+      };
 
       if (isOnline() && api.isAuthenticated()) {
         const syncPromise = api.postSdMeasurement({
-          temperatura: message.record.temperatura,
-          humedad: message.record.humedad,
-          radiacion_solar: message.record.radiacion_solar,
-          humedad_suelo: message.record.humedad_suelo,
-          timestamp: message.record.timestamp,
+          temperatura: pendingRecord.temperatura,
+          humedad: pendingRecord.humedad,
+          radiacion_solar: pendingRecord.radiacion_solar,
+          humedad_suelo: pendingRecord.humedad_suelo,
+          timestamp: pendingRecord.timestamp,
         }).then((result) => {
           console.info('Resultado sincronizacion SD:', result);
           return result;
-        }).catch((syncError) => {
-          console.error('No se pudo enviar el registro SD:', syncError);
+        }).catch(async (syncError) => {
+          console.error('No se pudo enviar el registro SD; queda pendiente:', syncError);
+          // Fix P2: si el envio falla, se conserva para sincronizarlo despues.
+          await saveMedicionOffline(pendingRecord, { synced: false });
           throw syncError;
         });
 
@@ -250,36 +374,79 @@ function useSensorData() {
             (pending) => pending !== syncPromise
           );
         });
+        // La confirmacion se envia incluso si Supabase marco el registro como
+        // duplicado: ya no es necesario retransmitirlo desde la SD.
+        syncPromise.then(requestNextSdRecord, requestNextSdRecord);
+      } else {
+        // Fix P2: sin conexion o sin sesion el registro NO se descarta; se
+        // guarda en IndexedDB y se sincroniza cuando vuelva la conexion.
+        saveMedicionOffline(pendingRecord, { synced: false }).finally(() => {
+          requestNextSdRecord();
+        });
       }
 
-      // siguiente bloque después de recibir las tres líneas esperadas.
       return;
     }
 
     if (message?.type === 'sync-end') {
+      if (observationModeRef.current) {
+        // Lectura de observacion finalizada: detener el modo sin escribir nada.
+        observationModeRef.current = false;
+        setObservationActive(false);
+        console.info(
+          `Observacion SD terminada. Registros recopilados: ${sdObservationRecordsRef.current.length}`
+        );
+        return;
+      }
+
       const pending = [...sdSyncPromisesRef.current];
       Promise.allSettled(pending).then(async () => {
         if (!isOnline() || !api.isAuthenticated()) return;
 
+        const selectedDate = syncedHistoryDateRef.current;
+        if (!selectedDate) return;
+
         try {
-          const payload = await api.getHistoricalData(timeRange);
+          const payload = await api.getHistoricalDataByDate(selectedDate);
           const historical = unwrapApiData(payload) || [];
           historicalDataRef.current = historical;
           setHistoricalData(historical);
-          console.info('Grafica actualizada tras sincronizacion SD');
+          setSyncedHistoryDate(selectedDate);
+          console.info(`Grafica actualizada con los datos SD de ${selectedDate}`);
         } catch (refreshError) {
           console.error('No se pudo actualizar la grafica tras SYNC_SD:', refreshError);
         }
       });
       return;
     }
-  }, [timeRange]);
+  }, [appendObservationRecord]);
 
   const serial = useXBeeSerial(handleSerialMeasurement, handleSerialControlMessage);
+  serialRef.current = serial;
 
   useEffect(() => {
     serialConnectedRef.current = serial.connected;
+    if (!serial.connected) {
+      isMeasuringRef.current = false;
+      setIsMeasuring(false);
+    }
   }, [serial.connected]);
+
+  const startMeasurements = useCallback(() => {
+    if (!serialConnectedRef.current) {
+      setError('Conecta el XBee antes de iniciar las medidas');
+      return;
+    }
+
+    isMeasuringRef.current = true;
+    setIsMeasuring(true);
+    setError(null);
+  }, []);
+
+  const stopMeasurements = useCallback(() => {
+    isMeasuringRef.current = false;
+    setIsMeasuring(false);
+  }, []);
 
   const cacheOnlineMeasurement = useCallback((measurements, battery) => {
     if (!measurements || serialConnectedRef.current) return;
@@ -466,9 +633,17 @@ function useSensorData() {
     }
   }, [offline, loadLocalData, serial.connected]);
 
+  // Cargar la ultima observacion SD persistida en el navegador para poder
+  // revisarla sin volver a conectar el nodo. Solo lectura.
+  useEffect(() => {
+    loadPersistedObservation();
+  }, [loadPersistedObservation]);
+
   const changeTimeRange = (hours) => {
     setTimeRange(hours);
-    if (!serialConnectedRef.current && !offline) {
+    syncedHistoryDateRef.current = null;
+    setSyncedHistoryDate(null);
+    if (!offline) {
       loadOnlineData(hours);
     }
   };
@@ -477,11 +652,21 @@ function useSensorData() {
     sensorData,
     batteryData,
     historicalData,
+    syncedHistoryDate,
     timeRange,
     loading,
     error,
     offline,
     serial,
+    isMeasuring,
+    startMeasurements,
+    stopMeasurements,
+    prepareSdHistoryDate,
+    observationActive,
+    sdObservationRecords,
+    startSdObservation,
+    stopSdObservation,
+    clearSdObservation,
     refetch: offline ? loadLocalData : () => loadOnlineData(timeRange),
     changeTimeRange
   };
