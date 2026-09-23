@@ -37,6 +37,25 @@ const formatLocalDate = (timestamp) => {
   return date.toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
 };
 
+// Fix 3A: por defecto la lectura de la SD se corta un dia antes del actual para
+// que la rafaga no se vuelva infinita mientras el nodo sigue guardando medidas.
+const getTodayBogota = () => {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Bogota',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date());
+  const byType = Object.fromEntries(parts.filter((p) => p.type !== 'literal').map((p) => [p.type, p.value]));
+  return `${byType.year}-${byType.month}-${byType.day}`;
+};
+
+const getYesterdayBogota = () => {
+  const today = new Date(`${getTodayBogota()}T12:00:00`);
+  today.setDate(today.getDate() - 1);
+  return today.toISOString().slice(0, 10);
+};
+
 // Convierte las filas por sensor de la API en fotos (snapshots) por segundo,
 // conservando las 4 variables en una sola fila para compararlas con la SD.
 const pivotCloudRecords = (records) => {
@@ -81,6 +100,7 @@ function SdObservationPanel() {
   const [cloudError, setCloudError] = useState(null);
   const [rangeInfo, setRangeInfo] = useState(null);
   const [sdFilterDate, setSdFilterDate] = useState('');
+  const [sdReadDate, setSdReadDate] = useState(getYesterdayBogota());
   const [sdPage, setSdPage] = useState(0);
   const [cloudPage, setCloudPage] = useState(0);
   const fetchingRef = useRef(false);
@@ -89,7 +109,7 @@ function SdObservationPanel() {
     if (!serial.connected) return;
     if (isMeasuring) return;
     setCloudError(null);
-    startSdObservation();
+    startSdObservation(sdReadDate || undefined);
   };
 
   const fetchRange = useCallback(async () => {
@@ -224,6 +244,15 @@ function SdObservationPanel() {
       </div>
 
       <div className="observation-controls">
+        <label className="sync-date-control">
+          <span>Leer SD hasta</span>
+          <input
+            type="date"
+            value={sdReadDate}
+            onChange={(event) => setSdReadDate(event.target.value)}
+            title="El nodo deja de transmitir al llegar al primer registro posterior a esta fecha (el dia actual se excluye por defecto)"
+          />
+        </label>
         <button
           className="manual-measure-button"
           onClick={readOnlySd}
@@ -233,7 +262,7 @@ function SdObservationPanel() {
               ? 'Conecta el XBee primero'
               : isMeasuring
                 ? 'Detén las medidas antes de leer la SD'
-                : 'Leer toda la SD sin guardar nada en la nube'
+                : `Leer la SD hasta ${sdReadDate} (fecha actual excluida) sin guardar nada en la nube`
           }
         >
           {observationActive ? 'Leyendo SD…' : 'Leer SD (solo lectura)'}

@@ -24,7 +24,7 @@ function Dashboard() {
     isMeasuring,
     startMeasurements,
     stopMeasurements,
-    prepareSdHistoryDate,
+    startSdCloudSync,
     changeTimeRange
   } = useSensorDataContext();
 
@@ -56,18 +56,10 @@ function Dashboard() {
     serial.connect();
   };
 
-  const handleSyncClick = async () => {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(syncDate)) return;
-
-    const waspmoteDate = syncDate.replaceAll('-', '').slice(2);
-
-    try {
-      prepareSdHistoryDate(syncDate);
-      await serial.sendCommand(`SYNC_SD:${waspmoteDate}`);
-      console.info(`Comando SYNC_SD enviado para la fecha ${waspmoteDate}`);
-    } catch (commandError) {
-      console.error('Error enviando SYNC_SD con fecha:', commandError);
-    }
+  const handleSyncClick = () => {
+    // Fix 2A: la sincronizacion a la nube solo ocurre aqui, activando la
+    // bandera del hook que permite subir los registros SD a Supabase.
+    startSdCloudSync(syncDate);
   };
 
   const handleMeasurementsClick = () => {

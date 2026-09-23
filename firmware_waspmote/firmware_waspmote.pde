@@ -12,8 +12,39 @@ char syncBegin[] = "SYNC_BEGIN\n";
 char syncEnd[] = "SYNC_END\n";
 char syncError[] = "SYNC_ERROR\n";
 const unsigned long MEASUREMENT_INTERVAL_MS = 30000UL;
+// Limite opcional para la lectura de la SD: fecha YYMMDD hasta la cual se
+// transmite (0 = sin limite, se lee toda la tarjeta).
+uint32_t syncDateLimit = 0;
 
 void handleSyncRequest();
+
+// Convierte los primeros 6 digitos tras "TS:" de una linea del LOG a YYMMDD.
+uint32_t extractLineDate(const char* line) {
+  const char* ts = strstr(line, "TS:");
+  if (ts == NULL) return 0;
+  ts += 3;
+  uint32_t value = 0;
+  for (uint8_t i = 0; i < 6; i++) {
+    char c = ts[i];
+    if (c < '0' || c > '9') return 0;
+    value = value * 10 + (uint32_t)(c - '0');
+  }
+  return value;
+}
+
+// Parsea el sufijo opcional ":YYMMDD" del comando SYNC_SD:YYMMDD.
+uint32_t parseRequestedSyncDate(const char* command) {
+  const char* sep = strchr(command, ':');
+  if (sep == NULL) return 0;
+  sep++;
+  uint32_t value = 0;
+  for (uint8_t i = 0; i < 6; i++) {
+    char c = sep[i];
+    if (c < '0' || c > '9') return 0;
+    value = value * 10 + (uint32_t)(c - '0');
+  }
+  return value;
+}
 
 void sendAllSdRecords() {
   uint32_t lineNumber = 0;
@@ -29,6 +60,13 @@ void sendAllSdRecords() {
     char* lineRead = SD.catln("LOG.TXT", lineNumber, 1);
     if (lineRead == NULL || lineRead[0] == '\0') break;
     lineNumber++;
+
+    // LOG.TXT es cronologico: si la fecha pedida se indica, se detiene la
+    // transmision al encontrar el primer registro posterior a dicha fecha.
+    if (syncDateLimit > 0) {
+      uint32_t lineDate = extractLineDate(SD.buffer);
+      if (lineDate > 0 && lineDate > syncDateLimit) break;
+    }
 
     char record[180];
     snprintf(record, sizeof(record), "SD_RECORD:%s\n", SD.buffer);
@@ -97,6 +135,7 @@ void handleSyncRequest() {
 
     if (isSyncStart && !syncActive && sdReady) {
       syncActive = true;
+      syncDateLimit = parseRequestedSyncDate(received);
       xbee802.send(DEST_ADDR, syncAck);
       delay(150);
       // Reintentar SYNC_BEGIN: si el primer envio se pierde el receptor
