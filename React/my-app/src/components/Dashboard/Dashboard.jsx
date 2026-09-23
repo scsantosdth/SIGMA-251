@@ -153,10 +153,6 @@ function Dashboard() {
               onTimeRangeChange={changeTimeRange}
             />
           </div>
-
-          <div className="chart-section">
-            <SdObservationPanel />
-          </div>
         </div>
 
         <div className="dashboard-sidebar">
@@ -170,6 +166,7 @@ function Dashboard() {
             isSyncingSd={isSyncingSd}
             serialConnected={serial.connected}
           />
+          <SdObservationPanel />
         </div>
       </div>
     </MainLayout>

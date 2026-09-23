@@ -805,6 +805,36 @@
   margin-bottom: 1rem;
 }
 
+/* Ajustes cuando el historial vive en la barra lateral estrecha */
+.sd-cloud-card .observation-header h2 {
+  font-size: 1.05rem;
+}
+
+.sd-cloud-card .observation-controls {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.sd-cloud-card .observation-controls .manual-measure-button {
+  width: 100%;
+  justify-content: center;
+  margin-right: 0;
+}
+
+.sd-cloud-card .sync-date-control {
+  width: 100%;
+}
+
+.sd-cloud-card .sync-date-control input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 36px;
+}
+
+.sd-cloud-card .observation-table-scroll {
+  max-height: 380px;
+}
+
 .observation-separator {
   width: 1px;
   height: 28px;
@@ -887,7 +917,7 @@
 
 .observation-tables {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 1rem;
 }
 

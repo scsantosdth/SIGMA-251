@@ -139,16 +139,9 @@ function SdObservationPanel() {
   };
 
   return (
-    <div className="observation-section">
+    <div className="observation-section sd-cloud-card">
       <div className="observation-header">
-        <h2>Mediciones en la Nube</h2>
-        <span className="observation-badge">Solo lectura</span>
-      </div>
-
-      <div className="observation-notice">
-        <strong>Modo solo lectura:</strong> consulta los registros subidos a la base de datos sin
-        modificar ni eliminar nada. Para subir los registros de la tarjeta SD usa el botón
-        “Sincronizar SD” de la barra lateral derecha.
+        <h2>Historial de mediciones</h2>
       </div>
 
       <div className="observation-controls">
@@ -169,7 +162,7 @@ function SdObservationPanel() {
           disabled={cloudLoading}
           title="Consultar mediciones en la base de datos (sin fecha = todo el historico)"
         >
-          {cloudLoading ? 'Consultando…' : cloudDate ? 'Consultar nube (fecha)' : 'Consultar nube (todo)'}
+          {cloudLoading ? 'Consultando…' : cloudDate ? 'Consultar (fecha)' : 'Consultar (todo)'}
         </button>
         <button
           className="manual-measure-button"
@@ -177,7 +170,7 @@ function SdObservationPanel() {
           disabled={cloudLoading}
           title="Periodo de fechas cubierto por la base de datos"
         >
-          Rango nube
+          Rango de fechas
         </button>
         <button className="manual-measure-button" onClick={handleClear}>
           Limpiar
@@ -197,10 +190,10 @@ function SdObservationPanel() {
       <div className="observation-tables">
         <div className="observation-table-block">
           <div className="observation-table-header">
-            <h3>Mediciones en la nube ({cloudSnapshotsTotal})</h3>
+            <h3>Registros ({cloudSnapshotsTotal})</h3>
           </div>
           {paginatedCloud.length === 0 ? (
-            <p className="no-data">Presiona “Consultar nube” para cargar los datos de la base de datos.</p>
+            <p className="no-data">Presiona “Consultar” para cargar los datos de la base de datos.</p>
           ) : (
             <>
               <div className="observation-table-scroll">
