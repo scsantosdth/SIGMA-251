@@ -15,6 +15,12 @@ const unsigned long MEASUREMENT_INTERVAL_MS = 30000UL;
 // Limite opcional para la lectura de la SD: fecha YYMMDD hasta la cual se
 // transmite (0 = sin limite, se lee toda la tarjeta).
 uint32_t syncDateLimit = 0;
+// Cooldown tras finalizar una sincronizacion: un SYNC_SD que quedo en cola en
+// el modulo XBee durante la rafaga (o un doble envio del navegador) se procesa
+// justo despues de SYNC_END y re-dispararia la lectura entera. Con este margen
+// se ignora hasta que pase el tiempo indicado.
+const unsigned long SYNC_COOLDOWN_MS = 3000UL;
+unsigned long lastSyncEndMillis = 0;
 
 void handleSyncRequest();
 
@@ -98,6 +104,7 @@ void sendAllSdRecords() {
   USB.print(F("; omitidos: "));
   USB.println((unsigned long)recordsFailed);
   syncActive = false;
+  lastSyncEndMillis = millis();
   delay(200);
   if (recordsSent == 0 && recordsFailed > 0) {
     xbee802.send(DEST_ADDR, syncError);
@@ -133,7 +140,8 @@ void handleSyncRequest() {
     USB.print(F("Comando XBee recibido: "));
     USB.println(received);
 
-    if (isSyncStart && !syncActive && sdReady) {
+    if (isSyncStart && !syncActive && sdReady &&
+        (millis() - lastSyncEndMillis >= SYNC_COOLDOWN_MS)) {
       syncActive = true;
       syncDateLimit = parseRequestedSyncDate(received);
       xbee802.send(DEST_ADDR, syncAck);
@@ -185,6 +193,7 @@ void setup() {
   
   xbee802.ON();
   delay(200);
+  lastSyncEndMillis = millis();
 }
 
 void loop() {

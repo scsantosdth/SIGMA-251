@@ -72,6 +72,9 @@ function useSensorData() {
   // subida de registros SD a Supabase. Cualquier SD_RECORD que llegue sin esta
   // bandera se ignora (p. ej. la rafaga restante tras detener la observacion).
   const sdCloudSyncRequestedRef = useRef(false);
+  // Guardia anti doble pulso: evita que un segundo click (o un re-render) envie
+  // otro SYNC_SD mientras ya hay una sincronizacion a la nube en curso.
+  const sdCloudSyncInFlightRef = useRef(false);
 
   useEffect(() => {
     sensorDataRef.current = sensorData;
@@ -342,11 +345,16 @@ function useSensorData() {
       setError('Conecta el XBee antes de sincronizar la SD');
       return false;
     }
+    if (sdCloudSyncInFlightRef.current) {
+      console.info('Sincronizacion SD en curso; se ignora la nueva peticion.');
+      return false;
+    }
     if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       setError('Selecciona una fecha para sincronizar la SD');
       return false;
     }
 
+    sdCloudSyncInFlightRef.current = true;
     sdCloudSyncRequestedRef.current = true;
     setObservationError(null);
     syncedHistoryDateRef.current = date;
@@ -355,6 +363,7 @@ function useSensorData() {
     const waspmoteDate = date.replaceAll('-', '').slice(2);
     serialRef.current?.sendCommand(`SYNC_SD:${waspmoteDate}`).catch((commandError) => {
       console.error('Error enviando SYNC_SD con fecha:', commandError);
+      sdCloudSyncInFlightRef.current = false;
       sdCloudSyncRequestedRef.current = false;
       syncedHistoryDateRef.current = null;
     });
@@ -438,6 +447,7 @@ function useSensorData() {
 
     if (message?.type === 'sync-error') {
       console.error('El nodo reportó un error al transmitir los registros SD:', message.line);
+      sdCloudSyncInFlightRef.current = false;
       sdCloudSyncRequestedRef.current = false;
       const pending = [...sdSyncPromisesRef.current];
       sdSyncPromisesRef.current = [];
@@ -467,6 +477,7 @@ function useSensorData() {
 
       // Fix 2A: la rafaga que pedia "Sincronizar SD" termino; a partir de aqui
       // cualquier SD_RECORD que llegue se ignora hasta la proxima peticion.
+      sdCloudSyncInFlightRef.current = false;
       sdCloudSyncRequestedRef.current = false;
 
       const pending = [...sdSyncPromisesRef.current];
