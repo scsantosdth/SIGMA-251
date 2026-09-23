@@ -52,6 +52,7 @@ function useSensorData() {
   const [isMeasuring, setIsMeasuring] = useState(false);
   const [syncedHistoryDate, setSyncedHistoryDate] = useState(null);
   const [observationActive, setObservationActive] = useState(false);
+  const [observationError, setObservationError] = useState(null);
   const [sdObservationRecords, setSdObservationRecords] = useState([]);
 
   const sensorDataRef = useRef(sensorData);
@@ -263,6 +264,7 @@ function useSensorData() {
 
     sdObservationRecordsRef.current = [...sdObservationRecordsRef.current, fullRecord];
     setSdObservationRecords(sdObservationRecordsRef.current);
+    setObservationError(null);
     // Se guarda en el navegador (IndexedDB) para poder revisarla despues SIN
     // enviarla nunca a la nube: cloudSync:false la excluye de la cola de sync.
     await saveSdObservation(fullRecord);
@@ -292,6 +294,7 @@ function useSensorData() {
     observationModeRef.current = true;
     setObservationActive(true);
     setError(null);
+    setObservationError(null);
 
     // Solo lectura: se pide toda la SD y los registros se recopilan
     // localmente sin escribir en la base de datos de la nube.
@@ -311,6 +314,7 @@ function useSensorData() {
   const clearSdObservation = useCallback(async () => {
     observationModeRef.current = false;
     setObservationActive(false);
+    setObservationError(null);
     observationDedupKeysRef.current.clear();
     sdObservationRecordsRef.current = [];
     setSdObservationRecords([]);
@@ -388,11 +392,28 @@ function useSensorData() {
       return;
     }
 
+    if (message?.type === 'sync-error') {
+      console.error('El nodo reportó un error al transmitir los registros SD:', message.line);
+      const pending = [...sdSyncPromisesRef.current];
+      sdSyncPromisesRef.current = [];
+      pending.forEach((promise) => promise.catch(() => {}));
+      if (observationModeRef.current) {
+        observationModeRef.current = false;
+        setObservationActive(false);
+      }
+      setObservationError(
+        'El nodo reportó un error al transmitir los registros de la SD (SYNC_ERROR). ' +
+        'Verifica que el nodo tenga el firmware correcto y revisa su consola USB.'
+      );
+      return;
+    }
+
     if (message?.type === 'sync-end') {
       if (observationModeRef.current) {
         // Lectura de observacion finalizada: detener el modo sin escribir nada.
         observationModeRef.current = false;
         setObservationActive(false);
+        setObservationError(null);
         console.info(
           `Observacion SD terminada. Registros recopilados: ${sdObservationRecordsRef.current.length}`
         );
@@ -663,6 +684,7 @@ function useSensorData() {
     stopMeasurements,
     prepareSdHistoryDate,
     observationActive,
+    observationError,
     sdObservationRecords,
     startSdObservation,
     stopSdObservation,

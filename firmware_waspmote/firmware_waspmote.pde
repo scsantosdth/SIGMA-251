@@ -18,6 +18,11 @@ void handleSyncRequest();
 void sendAllSdRecords() {
   uint32_t lineNumber = 0;
   uint32_t recordsSent = 0;
+  uint32_t recordsFailed = 0;
+
+  // Pequena pausa para que el modulo asiente la red tras recibir el comando
+  // y evitar fallos en los primeros envios de la rafaga.
+  delay(200);
 
   while (true) {
     SD.buffer[0] = '\0';
@@ -28,29 +33,39 @@ void sendAllSdRecords() {
     char record[180];
     snprintf(record, sizeof(record), "SD_RECORD:%s\n", SD.buffer);
     uint8_t sendError = 1;
-    for (uint8_t attempt = 0; attempt < 3; attempt++) {
+    for (uint8_t attempt = 0; attempt < 5; attempt++) {
       sendError = xbee802.send(DEST_ADDR, record);
       if (sendError == 0) break;
-      delay(100);
+      delay(150);
     }
 
     if (sendError != 0) {
-      USB.print(F("Error enviando registro SD: "));
-      USB.println(sendError);
-      syncActive = false;
-      xbee802.send(DEST_ADDR, syncError);
-      return;
+      // Un fallo de envio NO aborta toda la sincronizacion: se cuenta, se
+      // omite el registro y se continua con el siguiente para entregar todo
+      // lo posible al receptor.
+      recordsFailed++;
+      USB.print(F("Registro SD omitido (fallo de envio "));
+      USB.print((int)sendError);
+      USB.println(F(")"));
+      delay(150);
+      continue;
     }
 
     recordsSent++;
-    delay(250);
+    delay(300);
   }
 
-  USB.print(F("Sincronizacion SD terminada. Registros enviados: "));
-  USB.println((unsigned long)recordsSent);
+  USB.print(F("Sincronizacion SD finalizada. Enviados: "));
+  USB.print((unsigned long)recordsSent);
+  USB.print(F("; omitidos: "));
+  USB.println((unsigned long)recordsFailed);
   syncActive = false;
   delay(200);
-  xbee802.send(DEST_ADDR, syncEnd);
+  if (recordsSent == 0 && recordsFailed > 0) {
+    xbee802.send(DEST_ADDR, syncError);
+  } else {
+    xbee802.send(DEST_ADDR, syncEnd);
+  }
 }
 
 bool isValidAirReading(float temperature, float humidity) {
@@ -83,9 +98,13 @@ void handleSyncRequest() {
     if (isSyncStart && !syncActive && sdReady) {
       syncActive = true;
       xbee802.send(DEST_ADDR, syncAck);
-      delay(100);
-      xbee802.send(DEST_ADDR, syncBegin);
-      delay(100);
+      delay(150);
+      // Reintentar SYNC_BEGIN: si el primer envio se pierde el receptor
+      // (navegador) quedaria esperando sin saber que comenzo la sincronizacion.
+      for (uint8_t attempt = 0; attempt < 3; attempt++) {
+        if (xbee802.send(DEST_ADDR, syncBegin) == 0) break;
+        delay(150);
+      }
       sendAllSdRecords();
     }
 

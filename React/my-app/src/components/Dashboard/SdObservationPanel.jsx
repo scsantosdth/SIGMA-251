@@ -67,6 +67,7 @@ function SdObservationPanel() {
     serial,
     isMeasuring,
     observationActive,
+    observationError,
     sdObservationRecords,
     startSdObservation,
     stopSdObservation,
@@ -282,6 +283,8 @@ function SdObservationPanel() {
           Recibiendo registros de la SD… {sdObservationRecords.length} registros leídos hasta ahora.
         </div>
       )}
+
+      {observationError && <div className="dashboard-notice warning">{observationError}</div>}
 
       {cloudError && <div className="dashboard-notice warning">{cloudError}</div>}
 

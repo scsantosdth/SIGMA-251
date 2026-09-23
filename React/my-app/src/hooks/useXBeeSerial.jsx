@@ -72,6 +72,8 @@ export function useXBeeSerial(onMeasurement, onControlMessage) {
       onControlMessageRef.current?.({ type: 'sync-begin', line: cleanLine });
     } else if (/^SYNC_END\s*$/i.test(cleanLine)) {
       onControlMessageRef.current?.({ type: 'sync-end', line: cleanLine });
+    } else if (/^SYNC_ERROR\s*$/i.test(cleanLine)) {
+      onControlMessageRef.current?.({ type: 'sync-error', line: cleanLine });
     } else if (parsed) {
       onMeasurementRef.current?.(parsed, line);
     }

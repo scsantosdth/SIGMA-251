@@ -112,8 +112,14 @@ ON CONFLICT (id) DO UPDATE SET
     rango_max = EXCLUDED.rango_max,
     activo = EXCLUDED.activo;
 
--- Eliminar mediciones antiguas del sensor LDR (si existían)
-DELETE FROM mediciones WHERE sensor_id = 3;
+-- Indices para acelerar las consultas historicas por dia, hora y variable.
+-- No se elimina ninguna medicion: los datos historicos se conservan siempre.
+CREATE INDEX IF NOT EXISTS ix_mediciones_sensor_id
+    ON mediciones (sensor_id);
+CREATE INDEX IF NOT EXISTS ix_mediciones_timestamp
+    ON mediciones (timestamp);
+CREATE INDEX IF NOT EXISTS ix_mediciones_sensor_timestamp
+    ON mediciones (sensor_id, timestamp);
 
 -- Migracion segura para una base creada con versiones anteriores del script.
 -- Los timestamps previos fueron generados en UTC por Supabase/Render.
