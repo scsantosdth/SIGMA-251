@@ -18,7 +18,6 @@ function Dashboard() {
     timeRange,
     loading,
     error,
-    observationError,
     offline,
     serial,
     isMeasuring,
@@ -123,9 +122,9 @@ function Dashboard() {
             </div>
           </div>
 
-          {(loading || error || observationError || serial.error || offline) && (
-            <div className={`dashboard-notice ${error || observationError || serial.error ? 'warning' : 'info'}`}>
-              {serial.error || error || observationError || (offline ? 'Modo offline activo. Las lecturas se guardaran localmente.' : 'Cargando datos de sensores...')}
+          {(loading || error || serial.error || offline) && (
+            <div className={`dashboard-notice ${error || serial.error ? 'warning' : 'info'}`}>
+              {serial.error || error || (offline ? 'Modo offline activo. Las lecturas se guardaran localmente.' : 'Cargando datos de sensores...')}
             </div>
           )}
 

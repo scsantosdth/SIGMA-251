@@ -6,10 +6,7 @@ import {
   markMedicionSynced,
   syncOfflineMediciones,
   isOnline,
-  onConnectivityChange,
-  saveSdObservation,
-  getSdObservationRecords,
-  clearSdObservationRecords
+  onConnectivityChange
 } from '../services/offlineService';
 import { useXBeeSerial } from './useXBeeSerial.jsx';
 
@@ -51,9 +48,6 @@ function useSensorData() {
   const [offline, setOffline] = useState(!isOnline());
   const [isMeasuring, setIsMeasuring] = useState(false);
   const [syncedHistoryDate, setSyncedHistoryDate] = useState(null);
-  const [observationActive, setObservationActive] = useState(false);
-  const [observationError, setObservationError] = useState(null);
-  const [sdObservationRecords, setSdObservationRecords] = useState([]);
 
   const sensorDataRef = useRef(sensorData);
   const batteryDataRef = useRef(batteryData);
@@ -65,12 +59,9 @@ function useSensorData() {
   const sdSyncPromisesRef = useRef([]);
   const cloudSyncIntervalRef = useRef(getCloudIntervalMinutes() * 60 * 1000);
   const lastCloudSyncScheduledRef = useRef(getLastCloudSampleAt());
-  const observationModeRef = useRef(false);
-  const sdObservationRecordsRef = useRef([]);
-  const observationDedupKeysRef = useRef(new Set());
   // Fix 2A: solo la sincronizacion manual del boton "Sincronizar SD" activa la
   // subida de registros SD a Supabase. Cualquier SD_RECORD que llegue sin esta
-  // bandera se ignora (p. ej. la rafaga restante tras detener la observacion).
+  // bandera se ignora.
   const sdCloudSyncRequestedRef = useRef(false);
   // Guardia anti doble pulso: evita que un segundo click (o un re-render) envie
   // otro SYNC_SD mientras ya hay una sincronizacion a la nube en curso.
@@ -255,88 +246,6 @@ function useSensorData() {
     await syncSingleSerialMeasurement(savedRecord);
   }, [applyOfflineData, syncSingleSerialMeasurement]);
 
-  const appendObservationRecord = useCallback(async (record) => {
-    const key = record?.timestamp || '';
-    if (!key || observationDedupKeysRef.current.has(key)) return;
-
-    observationDedupKeysRef.current.add(key);
-    const fullRecord = {
-      ...record,
-      id: record.id || `sd-${key}`,
-      key,
-      source: 'sd',
-      synced: true,
-      cloudSync: false,
-    };
-
-    sdObservationRecordsRef.current = [...sdObservationRecordsRef.current, fullRecord];
-    setSdObservationRecords(sdObservationRecordsRef.current);
-    setObservationError(null);
-    // Se guarda en el navegador (IndexedDB) para poder revisarla despues SIN
-    // enviarla nunca a la nube: cloudSync:false la excluye de la cola de sync.
-    await saveSdObservation(fullRecord);
-  }, []);
-
-  const loadPersistedObservation = useCallback(async () => {
-    try {
-      const persisted = await getSdObservationRecords();
-      if (Array.isArray(persisted) && persisted.length > 0) {
-        persisted.forEach((record) => {
-          observationDedupKeysRef.current.add(record.key || record.timestamp || '');
-        });
-        sdObservationRecordsRef.current = persisted;
-        setSdObservationRecords(persisted);
-      }
-    } catch (error) {
-      console.error('Error cargando observacion SD persistida:', error);
-    }
-  }, []);
-
-  const startSdObservation = useCallback((date) => {
-    if (!serialConnectedRef.current) {
-      setError('Conecta el XBee antes de leer la SD');
-      return false;
-    }
-
-    observationModeRef.current = true;
-    setObservationActive(true);
-    setError(null);
-    setObservationError(null);
-
-    // Solo lectura: opcionalmente se pide la SD hasta una fecha (YYMMDD) para
-    // que el nodo detenga la transmision al pasarla. Sin fecha se lee toda la
-    // tarjeta. Los registros se recopilan localmente sin escribir en la nube.
-    const command = date && /^\d{4}-\d{2}-\d{2}$/.test(date)
-      ? `SYNC_SD:${date.replaceAll('-', '').slice(2)}`
-      : 'SYNC_SD';
-    serialRef.current?.sendCommand(command).catch((commandError) => {
-      console.error('Error enviando SYNC_SD para observacion:', commandError);
-      observationModeRef.current = false;
-      setObservationActive(false);
-    });
-    return true;
-  }, []);
-
-  const stopSdObservation = useCallback(() => {
-    observationModeRef.current = false;
-    setObservationActive(false);
-  }, []);
-
-  const clearSdObservation = useCallback(async () => {
-    observationModeRef.current = false;
-    setObservationActive(false);
-    setObservationError(null);
-    observationDedupKeysRef.current.clear();
-    sdObservationRecordsRef.current = [];
-    setSdObservationRecords([]);
-    await clearSdObservationRecords();
-  }, []);
-
-  const prepareSdHistoryDate = useCallback((date) => {
-    syncedHistoryDateRef.current = date;
-    setSyncedHistoryDate(null);
-  }, []);
-
   // Fix 2A: sincronizacion MANUAL de la SD hacia la nube. Es el unico camino
   // que activa la subida de registros: activa la bandera, pide la lectura con
   // fecha y al llegar SYNC_END dicha bandera se apaga de nuevo.
@@ -356,7 +265,6 @@ function useSensorData() {
 
     sdCloudSyncInFlightRef.current = true;
     sdCloudSyncRequestedRef.current = true;
-    setObservationError(null);
     syncedHistoryDateRef.current = date;
     setSyncedHistoryDate(null);
 
@@ -372,17 +280,9 @@ function useSensorData() {
 
   const handleSerialControlMessage = useCallback((message) => {
     if (message?.type === 'sd-record') {
-      // MODALIDAD OBSERVACION (solo lectura): los registros de la SD se
-      // recopilan localmente y NUNCA se envian a la base de datos.
-      if (observationModeRef.current) {
-        appendObservationRecord(message.record);
-        return;
-      }
-
-      // Fix 2A: los registros solo suben a Supabase cuando el usuario pulsó
-      // "Sincronizar SD". Tras detener una observacion el firmware sigue
-      // transmitiendo la rafaga; sin esta bandera esos registros se descartan
-      // en lugar de insertarse en la nube.
+      // Fix 2A: los registros SD solo suben a Supabase cuando el usuario pulsó
+      // "Sincronizar SD". Fuera de ese flujo se descartan: nunca tocan la nube
+      // ni el cache offline del navegador.
       if (!sdCloudSyncRequestedRef.current) {
         console.info('Registro SD ignorado (sin sincronizacion activa):', message.record);
         return;
@@ -452,11 +352,7 @@ function useSensorData() {
       const pending = [...sdSyncPromisesRef.current];
       sdSyncPromisesRef.current = [];
       pending.forEach((promise) => promise.catch(() => {}));
-      if (observationModeRef.current) {
-        observationModeRef.current = false;
-        setObservationActive(false);
-      }
-      setObservationError(
+      setError(
         'El nodo reportó un error al transmitir los registros de la SD (SYNC_ERROR). ' +
         'Verifica que el nodo tenga el firmware correcto y revisa su consola USB.'
       );
@@ -464,17 +360,6 @@ function useSensorData() {
     }
 
     if (message?.type === 'sync-end') {
-      if (observationModeRef.current) {
-        // Lectura de observacion finalizada: detener el modo sin escribir nada.
-        observationModeRef.current = false;
-        setObservationActive(false);
-        setObservationError(null);
-        console.info(
-          `Observacion SD terminada. Registros recopilados: ${sdObservationRecordsRef.current.length}`
-        );
-        return;
-      }
-
       // Fix 2A: la rafaga que pedia "Sincronizar SD" termino; a partir de aqui
       // cualquier SD_RECORD que llegue se ignora hasta la proxima peticion.
       sdCloudSyncInFlightRef.current = false;
@@ -500,7 +385,7 @@ function useSensorData() {
       });
       return;
     }
-  }, [appendObservationRecord]);
+  }, []);
 
   const serial = useXBeeSerial(handleSerialMeasurement, handleSerialControlMessage);
   serialRef.current = serial;
@@ -714,12 +599,6 @@ function useSensorData() {
     }
   }, [offline, loadLocalData, serial.connected]);
 
-  // Cargar la ultima observacion SD persistida en el navegador para poder
-  // revisarla sin volver a conectar el nodo. Solo lectura.
-  useEffect(() => {
-    loadPersistedObservation();
-  }, [loadPersistedObservation]);
-
   const changeTimeRange = (hours) => {
     setTimeRange(hours);
     syncedHistoryDateRef.current = null;
@@ -742,14 +621,7 @@ function useSensorData() {
     isMeasuring,
     startMeasurements,
     stopMeasurements,
-    prepareSdHistoryDate,
     startSdCloudSync,
-    observationActive,
-    observationError,
-    sdObservationRecords,
-    startSdObservation,
-    stopSdObservation,
-    clearSdObservation,
     refetch: offline ? loadLocalData : () => loadOnlineData(timeRange),
     changeTimeRange
   };
