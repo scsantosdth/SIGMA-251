@@ -1,6 +1,6 @@
 import '../../styles/Layout.css';
 
-function SdSyncControl({ syncDate, onSyncDateChange, onSyncClick, isMeasuring, isSyncingSd, serialConnected }) {
+function SdSyncControl({ syncDate, onSyncDateChange, onSyncClick, onSyncCancel, isMeasuring, isSyncingSd, serialConnected }) {
   return (
     <div className="sd-sync-card">
       <h3>Sincronizar SD</h3>
@@ -27,6 +27,15 @@ function SdSyncControl({ syncDate, onSyncDateChange, onSyncClick, isMeasuring, i
         >
           {isSyncingSd ? 'Sincronizando…' : 'Sincronizar SD'}
         </button>
+        {isSyncingSd && (
+          <button
+            className="manual-measure-button sync-cancel-button"
+            onClick={onSyncCancel}
+            title="Detener la sincronización de la SD en curso"
+          >
+            Cancelar
+          </button>
+        )}
       </div>
     </div>
   );

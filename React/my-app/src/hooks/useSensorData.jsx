@@ -281,6 +281,27 @@ function useSensorData() {
     return true;
   }, []);
 
+  // Cancela una sincronizacion de la SD en curso: avisa al nodo (que detiene
+  // la rafaga de registros) y resetea el estado local. Los SD_RECORD que ya
+  // venian en el aire se ignoran porque sdCloudSyncRequestedRef queda en false.
+  const cancelSdCloudSync = useCallback(() => {
+    if (!sdCloudSyncInFlightRef.current) {
+      console.info('No hay sincronizacion SD en curso; no se cancela nada.');
+      return false;
+    }
+
+    console.info('Cancelando sincronizacion SD...');
+    serialRef.current?.sendCommand('SYNC_CANCEL').catch((commandError) => {
+      console.error('Error enviando SYNC_CANCEL:', commandError);
+    });
+    sdCloudSyncInFlightRef.current = false;
+    sdCloudSyncRequestedRef.current = false;
+    syncedHistoryDateRef.current = null;
+    sdSyncPromisesRef.current = [];
+    setIsSyncingSd(false);
+    return true;
+  }, []);
+
   const handleSerialControlMessage = useCallback((message) => {
     if (message?.type === 'sd-record') {
       // Fix 2A: los registros SD solo suben a Supabase cuando el usuario pulsó
@@ -345,6 +366,18 @@ function useSensorData() {
         });
       }
 
+      return;
+    }
+
+    if (message?.type === 'sync-canceled') {
+      // El nodo confirmo la cancelacion de la rafaga SD. El estado ya fue
+      // reseteado por cancelSdCloudSync; esto es redundante pero inocuo.
+      console.info('El nodo confirmo la cancelacion de la sincronizacion SD.');
+      sdCloudSyncInFlightRef.current = false;
+      sdCloudSyncRequestedRef.current = false;
+      syncedHistoryDateRef.current = null;
+      sdSyncPromisesRef.current = [];
+      setIsSyncingSd(false);
       return;
     }
 
@@ -627,6 +660,7 @@ function useSensorData() {
     startMeasurements,
     stopMeasurements,
     startSdCloudSync,
+    cancelSdCloudSync,
     isSyncingSd,
     refetch: offline ? loadLocalData : () => loadOnlineData(timeRange),
     changeTimeRange

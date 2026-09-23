@@ -25,6 +25,7 @@ function Dashboard() {
     startMeasurements,
     stopMeasurements,
     startSdCloudSync,
+    cancelSdCloudSync,
     changeTimeRange
   } = useSensorDataContext();
 
@@ -164,6 +165,7 @@ function Dashboard() {
             syncDate={syncDate}
             onSyncDateChange={setSyncDate}
             onSyncClick={handleSyncClick}
+            onSyncCancel={cancelSdCloudSync}
             isMeasuring={isMeasuring}
             isSyncingSd={isSyncingSd}
             serialConnected={serial.connected}

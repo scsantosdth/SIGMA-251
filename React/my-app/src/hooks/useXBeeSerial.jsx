@@ -74,6 +74,8 @@ export function useXBeeSerial(onMeasurement, onControlMessage) {
       onControlMessageRef.current?.({ type: 'sync-end', line: cleanLine });
     } else if (/^SYNC_ERROR\s*$/i.test(cleanLine)) {
       onControlMessageRef.current?.({ type: 'sync-error', line: cleanLine });
+    } else if (/^SYNC_CANCELED\s*$/i.test(cleanLine)) {
+      onControlMessageRef.current?.({ type: 'sync-canceled', line: cleanLine });
     } else if (parsed) {
       onMeasurementRef.current?.(parsed, line);
     }
@@ -81,7 +83,7 @@ export function useXBeeSerial(onMeasurement, onControlMessage) {
 
   const processBufferedPayload = useCallback(() => {
     const payload = bufferRef.current.trim();
-    const isControlMessage = /^(SYNC_(BEGIN|END|ERROR)|SD_EMPTY)\s*$/i.test(payload);
+    const isControlMessage = /^(SYNC_(BEGIN|END|ERROR|CANCELED)|SD_EMPTY)\s*$/i.test(payload);
     if (!payload || (!parseXBeeLine(payload) && !parseSdRecordLine(payload) && !isControlMessage)) return;
     bufferRef.current = '';
     processLine(payload);

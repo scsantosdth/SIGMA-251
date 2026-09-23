@@ -11,6 +11,7 @@ char syncAck[] = "SYNC_ACK\n";
 char syncBegin[] = "SYNC_BEGIN\n";
 char syncEnd[] = "SYNC_END\n";
 char syncError[] = "SYNC_ERROR\n";
+char syncCanceled[] = "SYNC_CANCELED\n";
 const unsigned long MEASUREMENT_INTERVAL_MS = 30000UL;
 // Limite opcional para la lectura de la SD: fecha YYMMDD hasta la cual se
 // transmite (0 = sin limite, se lee toda la tarjeta).
@@ -23,6 +24,7 @@ const unsigned long SYNC_COOLDOWN_MS = 3000UL;
 unsigned long lastSyncEndMillis = 0;
 
 void handleSyncRequest();
+bool syncCancelRequested();
 
 // Convierte los primeros 6 digitos tras "TS:" de una linea del LOG a YYMMDD.
 uint32_t extractLineDate(const char* line) {
@@ -62,6 +64,18 @@ void sendAllSdRecords() {
   delay(200);
 
   while (true) {
+    // Cancela la rafaga si el receptor pidio detener la sincronizacion. La
+    // escucha del XBee durante el envio tambien libera el buffer del modulo,
+    // que de otro modo se llenaria con los SYNC_NEXT del navegador.
+    if (syncCancelRequested()) {
+      USB.println(F("Sincronizacion SD cancelada por el receptor"));
+      syncActive = false;
+      lastSyncEndMillis = millis();
+      delay(200);
+      xbee802.send(DEST_ADDR, syncCanceled);
+      return;
+    }
+
     SD.buffer[0] = '\0';
     char* lineRead = SD.catln("LOG.TXT", lineNumber, 1);
     if (lineRead == NULL || lineRead[0] == '\0') break;
@@ -159,6 +173,26 @@ void handleSyncRequest() {
     xbee802.packet_finished[xbee802.pos - 1] = NULL;
     xbee802.pos--;
   }
+}
+
+// Sondea el XBee durante la rafaga de sincronizacion en busca de un SYNC_CANCEL.
+bool syncCancelRequested() {
+  if (xbee802.available() <= 0) return false;
+  xbee802.treatData();
+  if (xbee802.error_RX) return false;
+
+  bool canceled = false;
+  while (xbee802.pos > 0) {
+    char* received = (char*)xbee802.packet_finished[xbee802.pos - 1]->data;
+    if (strncmp(received, "SYNC_CANCEL", 11) == 0 ||
+        strncmp(received, "YNC_CANCEL", 10) == 0) {
+      canceled = true;
+    }
+    free(xbee802.packet_finished[xbee802.pos - 1]);
+    xbee802.packet_finished[xbee802.pos - 1] = NULL;
+    xbee802.pos--;
+  }
+  return canceled;
 }
 
 void buildTimestamp(char* timestamp) {

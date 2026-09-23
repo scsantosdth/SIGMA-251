@@ -827,6 +827,16 @@
   margin-right: 0;
 }
 
+.sd-sync-card .sync-cancel-button {
+  background: #7f1d1d;
+}
+
+.sd-sync-card .sync-cancel-button:hover {
+  background: #991b1b;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
 .theme-light .sd-sync-card .sync-date-control {
   color: #64748b;
 }
