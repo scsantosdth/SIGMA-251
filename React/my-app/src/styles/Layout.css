@@ -440,8 +440,6 @@
   padding: 1.5rem;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
   height: fit-content;
-  position: sticky;
-  top: 100px;
 }
 
 .status-card {
@@ -819,7 +817,7 @@
   background: var(--card-bg, #1e1e2f);
   border-radius: 12px;
   padding: 16px;
-  margin-bottom: 16px;
+  margin: 1.25rem 0 16px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
