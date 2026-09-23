@@ -48,6 +48,7 @@ function useSensorData() {
   const [offline, setOffline] = useState(!isOnline());
   const [isMeasuring, setIsMeasuring] = useState(false);
   const [syncedHistoryDate, setSyncedHistoryDate] = useState(null);
+  const [isSyncingSd, setIsSyncingSd] = useState(false);
 
   const sensorDataRef = useRef(sensorData);
   const batteryDataRef = useRef(batteryData);
@@ -265,6 +266,7 @@ function useSensorData() {
 
     sdCloudSyncInFlightRef.current = true;
     sdCloudSyncRequestedRef.current = true;
+    setIsSyncingSd(true);
     syncedHistoryDateRef.current = date;
     setSyncedHistoryDate(null);
 
@@ -273,6 +275,7 @@ function useSensorData() {
       console.error('Error enviando SYNC_SD con fecha:', commandError);
       sdCloudSyncInFlightRef.current = false;
       sdCloudSyncRequestedRef.current = false;
+      setIsSyncingSd(false);
       syncedHistoryDateRef.current = null;
     });
     return true;
@@ -349,6 +352,7 @@ function useSensorData() {
       console.error('El nodo reportó un error al transmitir los registros SD:', message.line);
       sdCloudSyncInFlightRef.current = false;
       sdCloudSyncRequestedRef.current = false;
+      setIsSyncingSd(false);
       const pending = [...sdSyncPromisesRef.current];
       sdSyncPromisesRef.current = [];
       pending.forEach((promise) => promise.catch(() => {}));
@@ -364,6 +368,7 @@ function useSensorData() {
       // cualquier SD_RECORD que llegue se ignora hasta la proxima peticion.
       sdCloudSyncInFlightRef.current = false;
       sdCloudSyncRequestedRef.current = false;
+      setIsSyncingSd(false);
 
       const pending = [...sdSyncPromisesRef.current];
       Promise.allSettled(pending).then(async () => {
@@ -622,6 +627,7 @@ function useSensorData() {
     startMeasurements,
     stopMeasurements,
     startSdCloudSync,
+    isSyncingSd,
     refetch: offline ? loadLocalData : () => loadOnlineData(timeRange),
     changeTimeRange
   };

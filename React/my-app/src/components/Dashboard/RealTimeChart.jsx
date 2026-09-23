@@ -266,13 +266,20 @@ function RealTimeChart({ historicalData, syncedHistoryDate, timeRange, onTimeRan
 
       <div className="chart-with-axis-labels">
         <div className="chart-axis-labels chart-axis-labels-left" aria-label="Variables del eje izquierdo">
-          <div className="chart-axis-labels-left-group">
-            {leftAxisSensors.map((def) => (
-              <span key={def.key} className="chart-axis-label" style={{ color: def.color }}>
-                {def.label}
-              </span>
-            ))}
-          </div>
+          {leftAxisSensors.length > 1 && (
+            <div className="chart-axis-labels-left-group">
+              {leftAxisSensors.slice(0, -1).map((def) => (
+                <span key={def.key} className="chart-axis-label" style={{ color: def.color }}>
+                  {def.label}
+                </span>
+              ))}
+            </div>
+          )}
+          {leftAxisSensors.slice(-1).map((def) => (
+            <span key={def.key} className="chart-axis-label" style={{ color: def.color }}>
+              {def.label}
+            </span>
+          ))}
         </div>
 
         <ResponsiveContainer width="100%" height={320}>

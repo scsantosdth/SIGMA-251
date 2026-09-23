@@ -21,6 +21,7 @@ function Dashboard() {
     offline,
     serial,
     isMeasuring,
+    isSyncingSd,
     startMeasurements,
     stopMeasurements,
     startSdCloudSync,
@@ -45,7 +46,7 @@ function Dashboard() {
   const measurementsLabel = isMeasuring ? 'Detener medidas' : 'Iniciar medidas';
 
   const handleSerialClick = () => {
-    if (isMeasuring) return;
+    if (isMeasuring || isSyncingSd) return;
 
     if (serial.connected) {
       serial.disconnect();
@@ -80,22 +81,26 @@ function Dashboard() {
               <button
                 className={`xbee-connect-button ${serial.connected ? 'connected' : ''}`}
                 onClick={handleSerialClick}
-                disabled={!serial.supported || serial.connecting || isMeasuring}
+                disabled={!serial.supported || serial.connecting || isMeasuring || isSyncingSd}
                 title={!serial.supported
                   ? 'Disponible en Chrome o Edge con HTTPS/local'
                   : isMeasuring
                     ? 'Detén las medidas antes de desconectar el XBee'
-                    : 'Abrir selector de puerto serial'}
+                    : isSyncingSd
+                      ? 'Espera a que termine la sincronización de la SD'
+                      : 'Abrir selector de puerto serial'}
               >
                 {serialLabel}
               </button>
               <button
                 className={`manual-measure-button ${isMeasuring ? 'active' : ''}`}
                 onClick={handleMeasurementsClick}
-                disabled={!serial.connected}
-                title={isMeasuring
-                  ? 'Detener el procesamiento de mediciones en tiempo real'
-                  : 'Mostrar y guardar las mediciones recibidas del XBee'}
+                disabled={!serial.connected || isSyncingSd}
+                title={isSyncingSd
+                  ? 'Espera a que termine la sincronización de la SD para iniciar/defener las medidas'
+                  : isMeasuring
+                    ? 'Detener el procesamiento de mediciones en tiempo real'
+                    : 'Mostrar y guardar las mediciones recibidas del XBee'}
               >
                 {measurementsLabel}
               </button>
@@ -105,19 +110,21 @@ function Dashboard() {
                   type="date"
                   value={syncDate}
                   onChange={(event) => setSyncDate(event.target.value)}
-                  disabled={isMeasuring}
+                  disabled={isMeasuring || isSyncingSd}
                   aria-label="Fecha que se sincronizara desde la tarjeta SD"
                 />
               </label>
               <button
                 className="manual-measure-button sync-sd-button"
                 onClick={handleSyncClick}
-                disabled={!serial.connected || isMeasuring || !syncDate}
-                title={isMeasuring
-                  ? 'Detén las medidas antes de sincronizar la memoria SD'
-                  : 'Sincronizar registros conservados en la memoria SD'}
+                disabled={!serial.connected || isMeasuring || isSyncingSd || !syncDate}
+                title={isSyncingSd
+                  ? 'Sincronización de la SD en curso…'
+                  : isMeasuring
+                    ? 'Detén las medidas antes de sincronizar la memoria SD'
+                    : 'Sincronizar registros conservados en la memoria SD'}
               >
-                Sincronizar SD
+                {isSyncingSd ? 'Sincronizando…' : 'Sincronizar SD'}
               </button>
             </div>
           </div>
