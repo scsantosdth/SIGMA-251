@@ -49,6 +49,7 @@ function useSensorData() {
   const [isMeasuring, setIsMeasuring] = useState(false);
   const [syncedHistoryDate, setSyncedHistoryDate] = useState(null);
   const [isSyncingSd, setIsSyncingSd] = useState(false);
+  const [syncNotice, setSyncNotice] = useState(null);
 
   const sensorDataRef = useRef(sensorData);
   const batteryDataRef = useRef(batteryData);
@@ -58,6 +59,27 @@ function useSensorData() {
   const syncedHistoryDateRef = useRef(null);
   const isMeasuringRef = useRef(false);
   const sdSyncPromisesRef = useRef([]);
+  // Contador de registros SD procesados durante la sincronizacion, para
+  // mostrarlos en el aviso de "Sincronización completada".
+  const sdRecordsProcessedRef = useRef(0);
+  const syncNoticeTimerRef = useRef(null);
+  const clearSyncNotice = useCallback(() => {
+    if (syncNoticeTimerRef.current) {
+      window.clearTimeout(syncNoticeTimerRef.current);
+      syncNoticeTimerRef.current = null;
+    }
+    setSyncNotice(null);
+  }, []);
+  const showSyncNotice = useCallback((message) => {
+    setSyncNotice(message);
+    if (syncNoticeTimerRef.current) {
+      window.clearTimeout(syncNoticeTimerRef.current);
+    }
+    syncNoticeTimerRef.current = window.setTimeout(() => {
+      syncNoticeTimerRef.current = null;
+      setSyncNotice(null);
+    }, 6000);
+  }, []);
   const cloudSyncIntervalRef = useRef(getCloudIntervalMinutes() * 60 * 1000);
   const lastCloudSyncScheduledRef = useRef(getLastCloudSampleAt());
   // Fix 2A: solo la sincronizacion manual del boton "Sincronizar SD" activa la
@@ -73,6 +95,12 @@ function useSensorData() {
     batteryDataRef.current = batteryData;
     historicalDataRef.current = historicalData;
   }, [sensorData, batteryData, historicalData]);
+
+  useEffect(() => () => {
+    if (syncNoticeTimerRef.current) {
+      window.clearTimeout(syncNoticeTimerRef.current);
+    }
+  }, []);
 
   useEffect(() => {
     const setCloudInterval = (minutes, resetSchedule = false) => {
@@ -266,6 +294,8 @@ function useSensorData() {
 
     sdCloudSyncInFlightRef.current = true;
     sdCloudSyncRequestedRef.current = true;
+    sdRecordsProcessedRef.current = 0;
+    clearSyncNotice();
     setIsSyncingSd(true);
     syncedHistoryDateRef.current = date;
     setSyncedHistoryDate(null);
@@ -273,13 +303,14 @@ function useSensorData() {
     const waspmoteDate = date.replaceAll('-', '').slice(2);
     serialRef.current?.sendCommand(`SYNC_SD:${waspmoteDate}`).catch((commandError) => {
       console.error('Error enviando SYNC_SD con fecha:', commandError);
+      clearSyncNotice();
       sdCloudSyncInFlightRef.current = false;
       sdCloudSyncRequestedRef.current = false;
       setIsSyncingSd(false);
       syncedHistoryDateRef.current = null;
     });
     return true;
-  }, []);
+  }, [clearSyncNotice]);
 
   // Cancela una sincronizacion de la SD en curso: avisa al nodo (que detiene
   // la rafaga de registros) y resetea el estado local. Los SD_RECORD que ya
@@ -291,6 +322,7 @@ function useSensorData() {
     }
 
     console.info('Cancelando sincronizacion SD...');
+    clearSyncNotice();
     serialRef.current?.sendCommand('SYNC_CANCEL').catch((commandError) => {
       console.error('Error enviando SYNC_CANCEL:', commandError);
     });
@@ -300,7 +332,7 @@ function useSensorData() {
     sdSyncPromisesRef.current = [];
     setIsSyncingSd(false);
     return true;
-  }, []);
+  }, [clearSyncNotice]);
 
   const handleSerialControlMessage = useCallback((message) => {
     if (message?.type === 'sd-record') {
@@ -313,6 +345,7 @@ function useSensorData() {
       }
 
       console.info('Registro SD recibido; pendiente de sincronizacion:', message.record);
+      sdRecordsProcessedRef.current += 1;
 
       const requestNextSdRecord = () => {
         serialRef.current?.sendCommand('SYNC_NEXT').catch((commandError) => {
@@ -373,6 +406,7 @@ function useSensorData() {
       // El nodo confirmo la cancelacion de la rafaga SD. El estado ya fue
       // reseteado por cancelSdCloudSync; esto es redundante pero inocuo.
       console.info('El nodo confirmo la cancelacion de la sincronizacion SD.');
+      clearSyncNotice();
       sdCloudSyncInFlightRef.current = false;
       sdCloudSyncRequestedRef.current = false;
       syncedHistoryDateRef.current = null;
@@ -383,6 +417,7 @@ function useSensorData() {
 
     if (message?.type === 'sync-error') {
       console.error('El nodo reportó un error al transmitir los registros SD:', message.line);
+      clearSyncNotice();
       sdCloudSyncInFlightRef.current = false;
       sdCloudSyncRequestedRef.current = false;
       setIsSyncingSd(false);
@@ -404,10 +439,21 @@ function useSensorData() {
       setIsSyncingSd(false);
 
       const pending = [...sdSyncPromisesRef.current];
+      const count = sdRecordsProcessedRef.current;
+      const selectedDate = syncedHistoryDateRef.current;
       Promise.allSettled(pending).then(async () => {
+        if (count > 0) {
+          const base =
+            `Sincronización completada · ${count} ${count === 1 ? 'registro' : 'registros'}`;
+          showSyncNotice(
+            isOnline() && api.isAuthenticated()
+              ? (selectedDate ? `${base} (fecha ${selectedDate})` : base)
+              : `${base} guardados en la cola local (sin conexión)`
+          );
+        }
+
         if (!isOnline() || !api.isAuthenticated()) return;
 
-        const selectedDate = syncedHistoryDateRef.current;
         if (!selectedDate) return;
 
         try {
@@ -423,7 +469,7 @@ function useSensorData() {
       });
       return;
     }
-  }, []);
+  }, [clearSyncNotice, showSyncNotice]);
 
   const serial = useXBeeSerial(handleSerialMeasurement, handleSerialControlMessage);
   serialRef.current = serial;
@@ -662,6 +708,7 @@ function useSensorData() {
     startSdCloudSync,
     cancelSdCloudSync,
     isSyncingSd,
+    syncNotice,
     refetch: offline ? loadLocalData : () => loadOnlineData(timeRange),
     changeTimeRange
   };

@@ -26,6 +26,7 @@ function Dashboard() {
     stopMeasurements,
     startSdCloudSync,
     cancelSdCloudSync,
+    syncNotice,
     changeTimeRange
   } = useSensorDataContext();
 
@@ -111,6 +112,12 @@ function Dashboard() {
           {(loading || error || serial.error || offline) && (
             <div className={`dashboard-notice ${error || serial.error ? 'warning' : 'info'}`}>
               {serial.error || error || (offline ? 'Modo offline activo. Las lecturas se guardaran localmente.' : 'Cargando datos de sensores...')}
+            </div>
+          )}
+
+          {syncNotice && (
+            <div className="dashboard-notice success">
+              {syncNotice}
             </div>
           )}
 

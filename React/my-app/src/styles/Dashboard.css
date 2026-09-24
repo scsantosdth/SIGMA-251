@@ -166,6 +166,12 @@
   border-color: rgba(248, 113, 113, 0.24);
 }
 
+.dashboard-notice.success {
+  color: #d1fae5;
+  background: rgba(6, 78, 59, 0.22);
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
 /* ===== METRIC CARD ===== */
 .metrics-grid {
   display: grid;
