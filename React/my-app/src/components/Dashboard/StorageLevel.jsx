@@ -1,36 +1,33 @@
+import { getBatteryLevel } from '../../utils/batteryLevel.jsx';
+
 function StorageLevel({ batteryData }) {
-  const batteryLevel =
-    typeof batteryData === 'number' ? batteryData : (batteryData?.bateria ?? 0)
-
-  const getBatteryColor = () => {
-    if (batteryLevel > 70) return '#4caf50'
-    if (batteryLevel > 30) return '#ff9800'
-    return '#f44336'
-  }
-
-  const getBatteryStatus = () => {
-    if (batteryLevel > 70) return 'Optimo'
-    if (batteryLevel > 30) return 'Moderado'
-    return 'Bajo'
-  }
+  const { value, level, color, label } = getBatteryLevel(batteryData);
+  const isAlerting = level === 'critical' || level === 'warning';
 
   return (
-    <div className="offline-storage-card">
+    <div className={`offline-storage-card battery-card-${level}`}>
       <h3>Estado de Bateria</h3>
       <div className="storage-content">
         <div className="storage-level">
           <div
-            className="storage-fill"
-            style={{
-              width: `${batteryLevel}%`,
-              backgroundColor: getBatteryColor()
-            }}
+            className={`storage-fill${isAlerting ? ' battery-fill-alert' : ''}`}
+            style={{ width: `${value}%`, backgroundColor: color }}
           ></div>
         </div>
         <div className="storage-info">
-          <span className="battery-value">{batteryLevel}%</span>
-          <span className="battery-status">{getBatteryStatus()}</span>
+          <span className="battery-value">{Math.round(value)}%</span>
+          <span className="battery-status">{label}</span>
         </div>
+        {level === 'critical' && (
+          <div className="battery-alert" role="alert">
+            Bateria critica: {Math.round(value)}%. Conecte la bateria antes de que el nodo se apague.
+          </div>
+        )}
+        {level === 'warning' && (
+          <div className="battery-alert warning" role="status">
+            Bateria baja: {Math.round(value)}%. Programe el cambio pronto.
+          </div>
+        )}
       </div>
     </div>
   )

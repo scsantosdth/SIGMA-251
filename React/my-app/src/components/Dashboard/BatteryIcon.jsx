@@ -1,9 +1,10 @@
 // src/components/Dashboard/BatteryIcon.jsx
 import React from 'react';
+import { getBatteryLevel } from '../../utils/batteryLevel.jsx';
 
 const BatteryIcon = ({ percentage, width = 16, height = 28 }) => {
-  const clamped = Math.min(100, Math.max(0, percentage));
-  
+  const { value: clamped, level, color } = getBatteryLevel(percentage);
+
   // Dimensiones del cuerpo de la batería (coordenadas y tamaños)
   const bodyX = 1;
   const bodyY = 3;
@@ -17,14 +18,16 @@ const BatteryIcon = ({ percentage, width = 16, height = 28 }) => {
   // Coordenada Y superior del relleno: base fija en (bodyY + bodyHeight - margin)
   const fillY = bodyY + bodyHeight - margin - fillHeight;
 
-  const getColor = () => {
-    if (clamped > 70) return '#4caf50';   // verde
-    if (clamped > 30) return '#ff9800';   // naranja
-    return '#f44336';                     // rojo
-  };
-
   return (
-    <svg width={width} height={height} viewBox="0 0 16 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      className={`battery-icon battery-icon-${level}`}
+      width={width}
+      height={height}
+      viewBox="0 0 16 28"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      role="img"
+    >
       {/* Cuerpo de la batería */}
       <rect
         x={bodyX}
@@ -45,8 +48,8 @@ const BatteryIcon = ({ percentage, width = 16, height = 28 }) => {
         width={bodyWidth - 3}
         height={fillHeight}
         rx="1.5"
-        fill={getColor()}
-        style={{ transition: 'height 0.3s ease' }}
+        fill={color}
+        style={{ transition: 'height 0.3s ease, fill 0.3s ease' }}
       />
     </svg>
   );

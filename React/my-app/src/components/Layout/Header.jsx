@@ -3,10 +3,12 @@ import { useEffect, useState } from 'react';
 import '../../styles/index.css';
 import OfflineStorageIndicator from '../Dashboard/OfflineStorageIndicator.jsx';
 import BatteryIcon from '../Dashboard/BatteryIcon.jsx'; // ← nuevo
+import { getBatteryLevel } from '../../utils/batteryLevel.jsx';
 
 function Header({ onToggleSidebar, onManualMeasure, batteryData, serial }) {
   const [isOnline, setIsOnline] = useState(true);
-  const batteryPercentage = batteryData?.bateria ?? 0; // valor seguro
+  const battery = getBatteryLevel(batteryData);
+  const batteryPercentage = battery.value;
 
   useEffect(() => {
     const checkConnection = async () => {
@@ -95,9 +97,16 @@ function Header({ onToggleSidebar, onManualMeasure, batteryData, serial }) {
         <div className="header-actions">
           <OfflineStorageIndicator compact={true} />
 
-          <div className="battery-header-indicator" title={`Batería: ${batteryPercentage}%`}>
+          <div
+            className={`battery-header-indicator ${battery.level}`}
+            title={`Batería: ${Math.round(batteryPercentage)}% — ${battery.label}`}
+            role="status"
+            aria-live="polite"
+          >
             <BatteryIcon percentage={batteryPercentage} width={16} height={20} />
-            <span className="storage-percent">{Math.round(batteryPercentage)}%</span>
+            <span className={`storage-percent ${battery.level === 'critical' ? 'critical' : ''}`}>
+              {Math.round(batteryPercentage)}%
+            </span>
           </div>
 
           <button className="manual-measure-button" onClick={onManualMeasure}>

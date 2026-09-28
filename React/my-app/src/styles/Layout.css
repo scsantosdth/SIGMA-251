@@ -925,11 +925,84 @@
   align-items: center;
   gap: 4px; 
   margin-right: 10px;
+  padding: 4px 8px;
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid transparent;
+  transition: background 0.3s, border-color 0.3s;
 }
 
 .battery-header-indicator .storage-percent,
 .offline-storage-compact .storage-percent {
   font-size: 0.9rem;
+}
+
+/* --- Alertas de nivel de bateria --- */
+
+.battery-header-indicator.warning {
+  background: rgba(255, 152, 0, 0.12);
+  border-color: rgba(255, 152, 0, 0.35);
+}
+
+.battery-header-indicator.critical {
+  background: rgba(244, 67, 54, 0.16);
+  border-color: rgba(244, 67, 54, 0.5);
+  animation: battery-glow 0.9s ease-in-out infinite;
+}
+
+.battery-icon-warning {
+  animation: battery-blink 2s ease-in-out infinite;
+}
+
+.battery-icon-critical {
+  animation: battery-blink 0.9s ease-in-out infinite;
+}
+
+.battery-fill-alert {
+  animation: battery-blink 1.6s ease-in-out infinite;
+}
+
+.battery-alert {
+  margin-top: 10px;
+  color: #e74c3c;
+  font-size: 0.8rem;
+  text-align: center;
+  line-height: 1.35;
+  animation: pulse 1s infinite;
+}
+
+.battery-alert.warning {
+  color: #f59e0b;
+  animation: battery-blink 2s ease-in-out infinite;
+}
+
+.battery-card-critical {
+  border-color: rgba(244, 67, 54, 0.45);
+}
+
+.battery-card-warning {
+  border-color: rgba(255, 152, 0, 0.4);
+}
+
+@keyframes battery-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+@keyframes battery-glow {
+  0%, 100% { box-shadow: 0 0 6px rgba(244, 67, 54, 0.3); }
+  50% { box-shadow: 0 0 14px rgba(244, 67, 54, 0.7); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .battery-header-indicator.critical,
+  .battery-icon-warning,
+  .battery-icon-critical,
+  .battery-fill-alert,
+  .battery-alert,
+  .battery-alert.warning {
+    animation: none;
+  }
 }
 
 
