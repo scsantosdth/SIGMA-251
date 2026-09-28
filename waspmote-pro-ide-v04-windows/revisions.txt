@@ -1,0 +1,50 @@
+-- Waspmote Pro IDE --
+
+                                                      )[            ....   
+                                                   -$wj[        _swmQQWC   
+                                                    -4Qm    ._wmQWWWW!'    
+                                                     -QWL_swmQQWBVY"~.____ 
+                                                     _dQQWTY+vsawwwgmmQWV! 
+                                    1isas,       _mgmQQQQQmmQWWQQWVY!"-    
+                                   .s,. -?ha     -9WDWU?9Qz~- -- -         
+                                   -""?Ya,."h,   <!`_mT!2-?5a,             
+                                   -Swa. Yg.-Q,  ~ ^`  /`   "$a.           
+ aac  <aa, aa/                aac  _a,-4c ]k +m               "1           
+.QWk  ]VV( QQf   .      .     QQk  )YT`-C.-? -Y  .                         
+.QWk       WQmymmgc  <wgmggc. QQk       wgz  = gygmgwagmmgc                
+.QWk  jQQ[ WQQQQQQW;jWQQ  QQL QQk  ]WQ[ dQk  ) QF~"WWW(~)QQ[               
+.QWk  jQQ[ QQQ  QQQ(mWQ9VVVVT QQk  ]WQ[ mQk  = Q;  jWW  :QQ[               
+ WWm,,jQQ[ QQQQQWQW']WWa,_aa. $Qm,,]WQ[ dQm,sj Q(  jQW  :QW[               
+ -TTT(]YT' TTTYUH?^  ~TTB8T!` -TYT[)YT( -?9WTT T'  ]TY  -TY(               
+                 
+                      www.libelium.com
+
+
+For more information, see the website at: http://www.libelium.com/
+or the forums at: http://www.libelium.com/forum/
+
+INSTALLATION
+Detailed instructions are in http://www.libelium.com/development/waspmote/documentation
+
+
+***********************************
+***         IDE v04             ***
+***********************************
+--> Released 12th December 2013
+--> New IDE only compiles with API v005 and so on.
+--> New toolchain for IDE:
+	> avr-gcc 4.7.2 compiler
+	> avr-libc 1.8.0
+
+
+***********************************
+***         IDE v03             ***
+***********************************
+--> New IDE IDE v02 released 8th April 2013. This new IDE only compiles API v003.
+APIv002 is not valid for this IDE.
+
+
+***********************************
+***  WASPMOTE PRO IDE 2.0.1     *** 
+***********************************
+--> This is the first released of the WASPMOTE PRO IDE

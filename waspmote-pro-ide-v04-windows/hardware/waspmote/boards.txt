@@ -1,0 +1,15 @@
+##############################################################
+
+wasp1.name=waspmote-API-v023
+wasp1.upload.protocol=stk500
+wasp1.upload.maximum_size=122880
+wasp1.upload.speed=115200
+wasp1.upload.maximum_ram_size=8192
+wasp1.upload.warning_ram_size=7168
+
+wasp1.build.mcu=atmega1281
+wasp1.build.f_cpu=14745600L
+wasp1.build.core=waspmote-api
+
+
+##############################################################
