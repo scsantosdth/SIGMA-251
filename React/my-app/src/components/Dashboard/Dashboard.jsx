@@ -4,6 +4,7 @@ import MetricCard from './MetricCard.jsx';
 import StatusSidebar from '../Layout/StatusSidebar.jsx';
 import RealTimeChart from './RealTimeChart.jsx';
 import SdObservationPanel from './SdObservationPanel.jsx';
+import AlertsPanel from './AlertsPanel.jsx';
 import { useSensorDataContext } from '../../hooks/useSensorData.jsx';
 import { api } from '../../services/api.jsx';
 import '../../styles/index.css';
@@ -159,6 +160,10 @@ function Dashboard() {
               timeRange={timeRange}
               onTimeRangeChange={changeTimeRange}
             />
+          </div>
+
+          <div className="chart-section">
+            <AlertsPanel />
           </div>
         </div>
 

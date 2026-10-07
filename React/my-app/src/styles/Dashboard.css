@@ -1075,3 +1075,244 @@
 .theme-light .observation-table-header h3 {
   color: #111827;
 }
+/* ===== ALERTAS DEL CULTIVO (AlertsPanel) ===== */
+.alerts-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.alerts-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #e2e8f0;
+}
+
+.alerts-count {
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6ee7b7;
+  background: rgba(6, 78, 59, 0.35);
+  border: 1px solid rgba(52, 211, 153, 0.35);
+}
+
+.alerts-count.has-alerts {
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.4);
+  border-color: rgba(248, 113, 113, 0.4);
+}
+
+.alerts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.9rem;
+}
+
+.alert-card {
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.alert-card.status-bajo {
+  border-color: rgba(96, 165, 250, 0.55);
+}
+
+.alert-card.status-alto {
+  border-color: rgba(248, 113, 113, 0.55);
+}
+
+.alert-card-top {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.alert-card-top h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #e2e8f0;
+  flex: 1;
+}
+
+.alert-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.alert-status {
+  border-radius: 999px;
+  padding: 0.12rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.alert-status.status-ok {
+  color: #6ee7b7;
+  background: rgba(6, 78, 59, 0.35);
+  border: 1px solid rgba(52, 211, 153, 0.35);
+}
+
+.alert-status.status-bajo {
+  color: #93c5fd;
+  background: rgba(30, 64, 175, 0.35);
+  border: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+.alert-status.status-alto {
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.4);
+  border: 1px solid rgba(248, 113, 113, 0.4);
+}
+
+.alert-status.status-sin-datos {
+  color: #94a3b8;
+  background: rgba(100, 116, 139, 0.25);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.alert-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.alert-range {
+  font-size: 0.82rem;
+  color: #94a3b8;
+}
+
+.alerts-ok {
+  font-size: 0.9rem;
+  color: #34d399;
+  margin: 0.9rem 0 0;
+}
+
+.alerts-ok.hidden {
+  display: none;
+}
+
+.alerts-divider {
+  border: none;
+  border-top: 1px solid #374151;
+  margin: 1.25rem 0 1rem;
+}
+
+.alerts-resumen-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.alerts-resumen-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: #e2e8f0;
+}
+
+.alerts-resumen-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.6rem;
+}
+
+.alerts-table-scroll {
+  overflow: auto;
+  max-height: 400px;
+  border: 1px solid #374151;
+  border-radius: 10px;
+  background: #111827;
+  margin-top: 1rem;
+}
+
+.alerts-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+  min-width: 620px;
+}
+
+.alerts-table th {
+  position: sticky;
+  top: 0;
+  background: #1f2937;
+  color: #94a3b8;
+  text-align: left;
+  padding: 0.55rem 0.65rem;
+  font-weight: 600;
+  white-space: nowrap;
+  border-bottom: 1px solid #374151;
+  z-index: 1;
+}
+
+.alerts-table td {
+  padding: 0.5rem 0.65rem;
+  border-bottom: 1px solid rgba(55, 65, 81, 0.55);
+  color: #d1d5db;
+  white-space: nowrap;
+}
+
+.alerts-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.alerts-table td .alert-dot {
+  margin-right: 0.45rem;
+  vertical-align: middle;
+}
+
+.theme-light .alerts-header h2 {
+  color: #111827;
+}
+
+.theme-light .alert-card {
+  background: #f8fafc;
+  border-color: #e5e7eb;
+}
+
+.theme-light .alert-card-top h3 {
+  color: #111827;
+}
+
+.theme-light .alert-value {
+  color: #111827;
+}
+
+.theme-light .alerts-divider {
+  border-top-color: #e5e7eb;
+}
+
+.theme-light .alerts-resumen-header h3 {
+  color: #111827;
+}
+
+.theme-light .alerts-table-scroll {
+  background: #ffffff;
+  border-color: #e5e7eb;
+}
+
+.theme-light .alerts-table th {
+  background: #f1f5f9;
+  color: #475569;
+  border-bottom-color: #e5e7eb;
+}
+
+.theme-light .alerts-table td {
+  color: #1f2937;
+  border-bottom-color: rgba(229, 231, 235, 0.8);
+}

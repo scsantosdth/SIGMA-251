@@ -6,6 +6,12 @@ import { api } from '../../services/api.jsx';
 import ChangePasswordModal from './ChangePasswordModal.jsx';
 import ChangeEmailModal from './ChangeEmailModal.jsx';
 import { applyTheme, getTheme, setTheme } from '../../utils/theme.jsx';
+import {
+  getUmbrales,
+  setUmbrales as persistUmbrales,
+  validarUmbrales,
+  SENSORES_UMBRALES,
+} from '../../utils/umbrales.jsx';
 import '../../styles/Settings.css';
 
 function Settings() {
@@ -27,6 +33,10 @@ function Settings() {
   // Nuevos estados para el intervalo automático
   const [autoInterval, setAutoInterval] = useState(5);
   const [intervalLoading, setIntervalLoading] = useState(false);
+
+  // Estado para los umbrales de alerta (solo navegador)
+  const [umbralesConfig, setUmbralesConfig] = useState(getUmbrales);
+  const [umbralErrores, setUmbralErrores] = useState({});
 
   // Logout
   const handleLogout = () => {
@@ -97,6 +107,37 @@ function Settings() {
     };
     loadInterval();
   }, []);
+
+  // Mantener los umbrales sincronizados con lo guardado en el navegador.
+  useEffect(() => {
+    setUmbralesConfig(getUmbrales());
+    const syncUmbrales = () => setUmbralesConfig(getUmbrales());
+    window.addEventListener('sigma-umbrales-updated', syncUmbrales);
+    return () => window.removeEventListener('sigma-umbrales-updated', syncUmbrales);
+  }, []);
+
+  const handleUmbralChange = (key, campo, value) => {
+    setUmbralesConfig((prev) => ({
+      ...prev,
+      [key]: { ...(prev[key] || {}), [campo]: value },
+    }));
+    setUmbralErrores((prev) => ({ ...prev, [key]: undefined }));
+  };
+
+  const handleSaveUmbrales = () => {
+    const errores = validarUmbrales(umbralesConfig);
+    setUmbralErrores(errores);
+    if (Object.keys(errores).length > 0) {
+      showMessage('error', 'Corrige los valores marcados antes de guardar');
+      return;
+    }
+    const saved = persistUmbrales(umbralesConfig);
+    if (saved) {
+      showMessage('success', 'Umbrales guardados en este navegador');
+    } else {
+      showMessage('error', 'No se pudieron guardar los umbrales');
+    }
+  };
 
   // Estado del sistema
   const refreshSystemStatus = useCallback(async () => {
@@ -172,6 +213,14 @@ function Settings() {
               >
                 <span className="nav-icon"><img src="/config.png" alt="Preferencias" className="nav-icon-img" /></span>
                 <span className="nav-label">Preferencias</span>
+              </button>
+
+              <button
+                className={`nav-item ${activeTab === 'umbrales' ? 'active' : ''}`}
+                onClick={() => setActiveTab('umbrales')}
+              >
+                <span className="nav-icon">🔔</span>
+                <span className="nav-label">Umbrales</span>
               </button>
               
               <button
@@ -362,6 +411,75 @@ function Settings() {
                     </label>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {activeTab === 'umbrales' && (
+              <div className="settings-section">
+                <h2>Umbrales de alerta</h2>
+                <p className="section-description">
+                  Define los rangos aceptables de cada variable. Cuando una lectura quede fuera
+                  de su rango se mostrará una alerta en el panel de monitoreo. Los valores se
+                  guardan solo en este navegador.
+                </p>
+
+                <div className="umbrales-grid">
+                  {Object.keys(SENSORES_UMBRALES).map((key) => {
+                    const def = SENSORES_UMBRALES[key];
+                    const item = umbralesConfig[key] || { min: '', max: '' };
+                    const error = umbralErrores[key];
+                    return (
+                      <div className="umbral-item" key={key}>
+                        <div className="umbral-item-header">
+                          <span className="umbral-item-color" style={{ background: def.color }} />
+                          <h3>{def.label}</h3>
+                          <span className="umbral-item-unidad">{def.unidad}</span>
+                        </div>
+                        <div className="umbral-fields">
+                          <label className="umbral-field">
+                            <span>Mínimo</span>
+                            <input
+                              type="number"
+                              step="any"
+                              value={item.min}
+                              onChange={(event) => handleUmbralChange(key, 'min', event.target.value)}
+                            />
+                          </label>
+                          <label className="umbral-field">
+                            <span>Máximo</span>
+                            <input
+                              type="number"
+                              step="any"
+                              value={item.max}
+                              onChange={(event) => handleUmbralChange(key, 'max', event.target.value)}
+                            />
+                          </label>
+                        </div>
+                        <p className="umbral-item-ayuda">{def.ayuda}</p>
+                        {error && <p className="umbral-item-error">{error}</p>}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="umbrales-actions">
+                  <button className="btn btn-primary" onClick={handleSaveUmbrales}>
+                    Guardar umbrales
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      setUmbralesConfig(getUmbrales());
+                      setUmbralErrores({});
+                    }}
+                  >
+                    Restaurar últimos guardados
+                  </button>
+                </div>
+                <p className="umbrales-nota">
+                  Las alertas se calculan al momento con las lecturas más recientes y el resumen
+                  diario con los datos existentes. No se modifica la base de datos.
+                </p>
               </div>
             )}
 

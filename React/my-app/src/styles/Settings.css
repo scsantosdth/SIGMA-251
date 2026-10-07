@@ -718,3 +718,136 @@
   background: none;
   -webkit-text-fill-color: initial;
 }
+
+/* ===== UMBRALES DE ALERTA ===== */
+.umbrales-grid {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 760px;
+  margin-bottom: 1.5rem;
+}
+
+.umbral-item {
+  padding: 1.25rem;
+  background: #111827;
+  border-radius: 10px;
+  border: 1px solid #374151;
+}
+
+.umbral-item-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.umbral-item-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.umbral-item-header h3 {
+  margin: 0;
+  color: #f9fafb;
+  font-size: 1.05rem;
+  font-weight: 600;
+  flex: 1;
+}
+
+.umbral-item-unidad {
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.umbral-fields {
+  display: flex;
+  gap: 1rem;
+}
+
+.umbral-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.umbral-field span {
+  color: #9ca3af;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.umbral-field input {
+  background: #1f2937;
+  color: #e5e7eb;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.9rem;
+  min-width: 0;
+}
+
+.umbral-field input:focus {
+  outline: none;
+  border-color: #5fc2c9;
+}
+
+.umbral-item-ayuda {
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.umbral-item-error {
+  margin: 0.6rem 0 0;
+  font-size: 0.85rem;
+  color: #f87171;
+}
+
+.umbrales-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  max-width: 760px;
+}
+
+.umbrales-nota {
+  font-size: 0.85rem;
+  color: #6b7280;
+  max-width: 760px;
+}
+
+.theme-light .umbral-item {
+  background: #f8fafc;
+  border-color: #e5e7eb;
+}
+
+.theme-light .umbral-item-header h3 {
+  color: #1f2937;
+}
+
+.theme-light .umbral-item-unidad,
+.theme-light .umbrales-nota {
+  color: #475569;
+}
+
+.theme-light .umbral-field span {
+  color: #64748b;
+}
+
+.theme-light .umbral-field input {
+  background: #ffffff;
+  color: #111827;
+  border-color: #d1d5db;
+}
+
+.theme-light .umbral-item-ayuda {
+  color: #475569;
+}

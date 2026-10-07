@@ -25,7 +25,7 @@ function StorageLevel({ batteryData }) {
         )}
         {level === 'warning' && (
           <div className="battery-alert warning" role="status">
-            Bateria baja: {Math.round(value)}%. Programe el cambio pronto.
+            Bateria baja.
           </div>
         )}
       </div>
